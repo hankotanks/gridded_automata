@@ -22,20 +22,18 @@ fn wrap(coord: vec2<i32>) -> u32 {
 }
 
 fn adj_count(id: vec3<u32>) -> u32 {
-    var adj: array<u32, 8> = array<u32, 8>();
-
-    //let coord = vec2<i32>(i32(id.x), i32(id.y));
-    let coord = vec2<i32>(i32(id.x % size.width), i32(id.x / size.width));
+    let x = i32(id.x % size.width);
+    let y = i32(id.x / size.width);
 
     var alive: u32 = 0u;
-    if(old[wrap(vec2<i32>(coord.x - 1, coord.y - 1))] == 1u) { alive++; };
-    if(old[wrap(vec2<i32>(coord.x, coord.y - 1))] == 1u) { alive++; };
-    if(old[wrap(vec2<i32>(coord.x + 1, coord.y - 1))] == 1u) { alive++; };
-    if(old[wrap(vec2<i32>(coord.x - 1, coord.y))] == 1u) { alive++; };
-    if(old[wrap(vec2<i32>(coord.x + 1, coord.y))] == 1u) { alive++; };
-    if(old[wrap(vec2<i32>(coord.x - 1, coord.y + 1))] == 1u) { alive++; };
-    if(old[wrap(vec2<i32>(coord.x, coord.y + 1))] == 1u) { alive++; };
-    if(old[wrap(vec2<i32>(coord.x + 1, coord.y + 1))] == 1u) { alive++; };
+    if(old[wrap(vec2<i32>(x - 1, y - 1))] == 1u) { alive++; };
+    if(old[wrap(vec2<i32>(x, y - 1))] == 1u) { alive++; };
+    if(old[wrap(vec2<i32>(x + 1, y - 1))] == 1u) { alive++; };
+    if(old[wrap(vec2<i32>(x - 1, y))] == 1u) { alive++; };
+    if(old[wrap(vec2<i32>(x + 1, y))] == 1u) { alive++; };
+    if(old[wrap(vec2<i32>(x - 1, y + 1))] == 1u) { alive++; };
+    if(old[wrap(vec2<i32>(x, y + 1))] == 1u) { alive++; };
+    if(old[wrap(vec2<i32>(x + 1, y + 1))] == 1u) { alive++; };
 
     return alive;
 }
