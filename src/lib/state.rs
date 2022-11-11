@@ -19,10 +19,12 @@ pub(crate) struct State {
     pub(crate) queue: wgpu::Queue,
     pub(crate) render_pipeline: wgpu::RenderPipeline,
     pub(crate) automata: Automata,
-    pub(crate) automata_size: wgpu::BufferAddress,
-    pub(crate) automata_buffer: wgpu::Buffer,
-    pub(crate) compute_pipeline: wgpu::ComputePipeline,
-    pub(crate) compute_bind_group: wgpu::BindGroup
+    pub(crate) dim_bind_group: wgpu::BindGroup,
+    pub(crate) a_buffer: wgpu::Buffer,
+    pub(crate) b_buffer: wgpu::Buffer,
+    pub(crate) a_bind_group: wgpu::BindGroup,
+    pub(crate) b_bind_group: wgpu::BindGroup,
+    pub(crate) compute_pipeline: wgpu::ComputePipeline
 }
 
 impl State {
@@ -119,23 +121,7 @@ impl State {
             }
         );
 
-        let automata_bytes = automata.data
-            .iter()
-            .map(|x| u32::to_ne_bytes(*x)) 
-            .flat_map(|f| f.into_iter())
-            .collect::<Vec<_>>();
-
-        let automata_size = automata_bytes.len() as wgpu::BufferAddress;
-
-        let automata_buffer = device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: None,
-                contents: &automata_bytes,
-                usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
-            }
-        );
-
-        let dimension_buffer = device.create_buffer_init(
+        let dim_buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: None,
                 contents: bytemuck::cast_slice(&[automata.size]),
@@ -143,7 +129,57 @@ impl State {
             }
         );
 
-        let compute_bind_group_layout = device.create_bind_group_layout(
+        let dim_bind_group_layout = device.create_bind_group_layout(
+            &wgpu::BindGroupLayoutDescriptor {
+                label: None,
+                entries: &[wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    count: None,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    }
+                }]
+            }
+        );
+
+        let dim_bind_group = device.create_bind_group(
+            &wgpu::BindGroupDescriptor {
+                label: None,
+                layout: &dim_bind_group_layout,
+                entries: &[wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: dim_buffer.as_entire_binding()
+                }]
+            }
+        );
+
+        let a_bytes = automata.data
+            .iter()
+            .map(|x| u32::to_ne_bytes(*x)) 
+            .flat_map(|f| f.into_iter())
+            .collect::<Vec<_>>();
+
+        let a_buffer = device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: None,
+                contents: &a_bytes,
+                usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::MAP_READ
+            }
+        );
+
+        let b_buffer = device.create_buffer(
+            &wgpu::BufferDescriptor {
+                label: None,
+                size: a_bytes.len() as wgpu::BufferAddress,
+                usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::MAP_READ,
+                mapped_at_creation: false,
+            }  
+        );
+
+        let layout = device.create_bind_group_layout(
             &wgpu::BindGroupLayoutDescriptor {
                 label: None,
                 entries: &[
@@ -154,7 +190,7 @@ impl State {
                         ty: wgpu::BindingType::Buffer {
                             has_dynamic_offset: false,
                             min_binding_size: None,
-                            ty: wgpu::BufferBindingType::Uniform,
+                            ty: wgpu::BufferBindingType::Storage { read_only: true },
                         }
                     },
                     wgpu::BindGroupLayoutEntry {
@@ -166,26 +202,43 @@ impl State {
                             min_binding_size: None,
                             ty: wgpu::BufferBindingType::Storage { read_only: false },
                         }
-                    },
+                    }
                 ],
             }
         );
 
-        let compute_bind_group = device.create_bind_group(
+        let a_bind_group = device.create_bind_group(
             &wgpu::BindGroupDescriptor {
                 label: None,
-                layout: &compute_bind_group_layout,
+                layout: &layout,
                 entries: &[
                     wgpu::BindGroupEntry {
                         binding: 0,
-                        resource: dimension_buffer.as_entire_binding(),
+                        resource: a_buffer.as_entire_binding()
                     },
                     wgpu::BindGroupEntry {
                         binding: 1,
-                        resource: automata_buffer.as_entire_binding(),
-                    }
+                        resource: b_buffer.as_entire_binding()
+                    },
                 ],
-            }
+            }  
+        );
+
+        let b_bind_group = device.create_bind_group(
+            &wgpu::BindGroupDescriptor {
+                label: None,
+                layout: &layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: b_buffer.as_entire_binding()
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: a_buffer.as_entire_binding()
+                    },
+                ],
+            }  
         );
 
         let compute_pipeline = device.create_compute_pipeline(
@@ -195,7 +248,7 @@ impl State {
                     device.create_pipeline_layout(
                         &wgpu::PipelineLayoutDescriptor {
                             label: None,
-                            bind_group_layouts: &[&compute_bind_group_layout],
+                            bind_group_layouts: &[&dim_bind_group_layout, &layout],
                             push_constant_ranges: &[]
                         } 
                     )
@@ -213,10 +266,12 @@ impl State {
             queue,
             render_pipeline,
             automata,
-            automata_size,
-            automata_buffer,
-            compute_pipeline,
-            compute_bind_group
+            dim_bind_group,
+            a_buffer,
+            b_buffer,
+            a_bind_group,
+            b_bind_group,
+            compute_pipeline
         }
     }
 
@@ -229,29 +284,9 @@ impl State {
         }
     }
 
-    fn tick(&mut self) {
-        let automata_bytes = self.automata.data
-            .iter()
-            .map(|x| u32::to_ne_bytes(*x)) 
-            .flat_map(|f| f.into_iter())
-            .collect::<Vec<_>>();
-
-        let temp_buffer = self.device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: None,
-                contents: &automata_bytes,
-                usage: wgpu::BufferUsages::COPY_SRC,
-            }
-        );
-
+    pub(crate) fn tick(&mut self) {
         let descriptor = wgpu::CommandEncoderDescriptor { label: None };
         let mut encoder = self.device.create_command_encoder(&descriptor);
-
-        encoder.copy_buffer_to_buffer(
-            &temp_buffer, 0,
-            &self.automata_buffer, 0,
-            self.automata_size,
-        );
 
         {
             let mut compute_pass = encoder.begin_compute_pass(
@@ -259,15 +294,20 @@ impl State {
             );
 
             // TODO
-            compute_pass.set_bind_group(0, &self.compute_bind_group, &[]);
+            compute_pass.set_bind_group(0, &self.dim_bind_group, &[]);
+            compute_pass.set_bind_group(1, &self.a_bind_group, &[]);
             compute_pass.set_pipeline(&self.compute_pipeline);
-            compute_pass.dispatch_workgroups(self.automata_size as u32 / 64, 1, 1);
+            compute_pass.dispatch_workgroups(
+                (self.automata.size.width * self.automata.size.height) / 64, 
+                1, 
+                1
+            );
         }
 
-    
         // Wait for GPU to finish
         self.queue.submit(Some(encoder.finish()));
-        let buffer_slice = self.automata_buffer.slice(..);
+
+        let buffer_slice = self.b_buffer.slice(..);
 
         let ready = Arc::new(Mutex::new(Cell::new(false)));
         let ready_ref = Arc::clone(&ready);
@@ -283,17 +323,18 @@ impl State {
                 .chunks_exact(4)
                 .map(|b| u32::from_ne_bytes(b.try_into().unwrap()))
                 .collect::<Vec<_>>();
-                
+            
             drop(data);
-            self.automata_buffer.unmap();
+            self.b_buffer.unmap();
 
             self.automata.data = result;
         }
+
+        std::mem::swap(&mut self.a_buffer, &mut self.b_buffer);
+        std::mem::swap(&mut self.a_bind_group, &mut self.b_bind_group);
     }
 
     pub(crate) fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
-        self.tick();
-
         let size = self.automata.size;
         let (height, width) = (size.height, size.width);
 
@@ -325,9 +366,7 @@ impl State {
                         Vertex { position: [x_f - hw, y_f + hh, 0.0], color },
                         Vertex { position: [x_f + hw, y_f + hh, 0.0], color }
                     ]
-                } );
-                
-                 
+                } ); 
             }
         }
         
