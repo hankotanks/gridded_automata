@@ -16,7 +16,7 @@ impl Vertex {
     }
 }
 
-pub(crate) const CLIP_SPACE_EXTREMES: [Vertex; 4] = [
+pub(crate) const CLIP_SPACE_EXTREMA: [Vertex; 4] = [
     Vertex { pos: [-1.0, -1.0] },
     Vertex { pos: [ 1.0, -1.0] },
     Vertex { pos: [-1.0,  1.0] },

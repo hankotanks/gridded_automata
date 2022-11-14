@@ -1,14 +1,16 @@
 use std::{
     iter,
     sync::{Arc, Mutex},
-    cell::Cell, mem
+    cell::Cell, 
+    mem
 };
 
 use wgpu::util::DeviceExt;
 
 use crate::{
     Vertex, 
-    automata::Automata, vertex
+    CLIP_SPACE_EXTREMA,
+    automata
 };
 
 pub(crate) struct State {
@@ -20,7 +22,7 @@ pub(crate) struct State {
 
     pub(crate) size_group: wgpu::BindGroup,
 
-    pub(crate) automata: Automata,
+    pub(crate) automata: automata::Automata,
     pub(crate) cell_buffers: (wgpu::Buffer, wgpu::Buffer),
     pub(crate) cell_groups: (wgpu::BindGroup, wgpu::BindGroup),
 
@@ -37,7 +39,7 @@ impl State {
     pub(crate) async fn new(
         window: &winit::window::Window, 
         compute: wgpu::ShaderModuleDescriptor<'static>,
-        automata: Automata
+        automata: automata::Automata
     ) -> Self {
         //
         // WGPU Mandatory State Information
@@ -310,7 +312,7 @@ impl State {
         let vertex_buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: None,
-                contents: bytemuck::cast_slice(vertex::CLIP_SPACE_EXTREMES.as_slice()),
+                contents: bytemuck::cast_slice(CLIP_SPACE_EXTREMA.as_slice()),
                 usage: wgpu::BufferUsages::VERTEX
             }
         );

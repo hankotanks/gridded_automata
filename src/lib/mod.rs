@@ -2,10 +2,14 @@ mod state;
 
 mod vertex;
 pub(crate) use vertex::Vertex;
+pub(crate) use vertex::CLIP_SPACE_EXTREMA;
 
 pub mod automata;
 
-use std::{borrow::Cow, time};
+use std::{
+    borrow::Cow, 
+    time
+};
 
 use winit::{
     window::WindowBuilder,
@@ -14,18 +18,27 @@ use winit::{
     event_loop
 };
 
+fn build_compute_shader(compute_shader_file: Cow<'static, str>) -> wgpu::ShaderModuleDescriptor {
+    let mut compute_shader_source = String::new();
+    compute_shader_source.push_str(include_str!("ca_header.wgsl"));
+    compute_shader_source.push('\n');
+    compute_shader_source.push_str(&compute_shader_file);
+    compute_shader_source.push('\n');
+    compute_shader_source.push_str(include_str!("ca_caller.wgsl"));
+
+    wgpu::ShaderModuleDescriptor {
+        label: None,
+        source: wgpu::ShaderSource::Wgsl(compute_shader_source.into())
+    }
+}
+
 pub async fn run(automata: automata::Automata, compute_shader_file: Cow<'static, str>, fps: u32) {
     let event_loop = event_loop::EventLoop::new();
     let window = WindowBuilder::new().build(&event_loop).unwrap();
-    
-    let compute = wgpu::ShaderModuleDescriptor {
-        label: None,
-        source: wgpu::ShaderSource::Wgsl(compute_shader_file)
-    };
 
     let mut state = state::State::new(
         &window,
-        compute,
+        build_compute_shader(compute_shader_file),
         automata
     ).await;
 
