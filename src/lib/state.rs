@@ -8,19 +8,19 @@ use wgpu::util::DeviceExt;
 
 use crate::{
     Vertex, 
-    cells::Cells, vertex
+    automata::Automata, vertex
 };
 
 pub(crate) struct State {
     pub(crate) physical_size: winit::dpi::PhysicalSize<u32>,
+    pub(crate) device: wgpu::Device,
     pub(crate) surface: wgpu::Surface,
     pub(crate) surface_config: wgpu::SurfaceConfiguration,
-    pub(crate) device: wgpu::Device,
     pub(crate) queue: wgpu::Queue,
 
     pub(crate) size_group: wgpu::BindGroup,
 
-    pub(crate) cell_data: Cells,
+    pub(crate) automata: Automata,
     pub(crate) cell_buffers: (wgpu::Buffer, wgpu::Buffer),
     pub(crate) cell_groups: (wgpu::BindGroup, wgpu::BindGroup),
 
@@ -37,7 +37,7 @@ impl State {
     pub(crate) async fn new(
         window: &winit::window::Window, 
         compute: wgpu::ShaderModuleDescriptor<'static>,
-        cell_data: Cells
+        automata: Automata
     ) -> Self {
         //
         // WGPU Mandatory State Information
@@ -96,7 +96,7 @@ impl State {
         let size_buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: None,
-                contents: bytemuck::cast_slice(&[cell_data.size]),
+                contents: bytemuck::cast_slice(&[automata.size]),
                 usage: wgpu::BufferUsages::UNIFORM,
             }
         );
@@ -133,8 +133,8 @@ impl State {
         //
 
         let extent = wgpu::Extent3d {
-            width: cell_data.size.width,
-            height: cell_data.size.height,
+            width: automata.size.width,
+            height: automata.size.height,
             depth_or_array_layers: 1,
         };
 
@@ -173,7 +173,7 @@ impl State {
                 &wgpu::util::BufferInitDescriptor {
                     label: None,
                     contents: &{
-                        cell_data.data
+                        automata.data
                             .iter()
                             .map(|x| u32::to_ne_bytes(*x)) 
                             .flat_map(|f| f.into_iter())
@@ -185,7 +185,7 @@ impl State {
             device.create_buffer(
                 &wgpu::BufferDescriptor {
                     label: None,
-                    size: (cell_data.data.len() * 4) as wgpu::BufferAddress,
+                    size: (automata.data.len() * 4) as wgpu::BufferAddress,
                     usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::MAP_READ,
                     mapped_at_creation: false,
                 }  
@@ -407,12 +407,12 @@ impl State {
 
         Self {
             physical_size,
+            device,
             surface,
             surface_config,
-            device,
             queue,
             size_group,
-            cell_data,
+            automata,
             cell_buffers,
             cell_groups,
             compute_texture_group,
@@ -448,8 +448,8 @@ impl State {
             compute_pass.set_pipeline(&self.compute_pipeline);
 
             compute_pass.dispatch_workgroups(
-                self.cell_data.size.width / 16, 
-                self.cell_data.size.height / 16, 
+                self.automata.size.width / 16, 
+                self.automata.size.height / 16, 
                 1
             );
         }
@@ -477,7 +477,7 @@ impl State {
             drop(data);
             self.cell_buffers.1.unmap();
 
-            self.cell_data.data = result;
+            self.automata.data = result;
         }
 
         mem::swap(&mut self.cell_buffers.0, &mut self.cell_buffers.1);

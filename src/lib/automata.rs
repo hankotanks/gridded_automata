@@ -10,12 +10,12 @@ pub struct Size {
     pub width: u32
 }
 
-pub struct Cells {
+pub struct Automata {
     pub(crate) data: Vec<u32>,
     pub(crate) size: Size
 }
 
-impl Index<Point2<u32>> for Cells {
+impl Index<Point2<u32>> for Automata {
     type Output = u32;
 
     fn index(&self, index: Point2<u32>) -> &Self::Output {
@@ -23,22 +23,22 @@ impl Index<Point2<u32>> for Cells {
     }
 }
 
-impl IndexMut<Point2<u32>> for Cells {
+impl IndexMut<Point2<u32>> for Automata {
     fn index_mut(&mut self, index: Point2<u32>) -> &mut Self::Output {
         &mut self.data[(index.x + index.y * self.size.width) as usize]
     }
 }
 
-impl Cells {
+impl Automata {
     pub fn new(size: Size) -> Self {
-        Cells { data: vec![0; (size.width * size.height) as usize], size }
+        Automata { data: vec![0; (size.width * size.height) as usize], size }
     }
 }
 
-pub fn rand_cells(size: Size) -> Cells {
+pub fn rand_automata(size: Size) -> Automata {
     let mut prng = rand::thread_rng();
 
-    Cells {
+    Automata {
         data: { 
             (0..(size.height * size.width))
                 .map(|_| prng.gen_range(0..=1) )
