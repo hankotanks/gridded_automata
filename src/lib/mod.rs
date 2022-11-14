@@ -3,7 +3,7 @@ mod state;
 mod vertex;
 pub(crate) use vertex::Vertex;
 
-pub mod automata;
+pub mod cells;
 
 use std::{borrow::Cow, time};
 
@@ -14,7 +14,7 @@ use winit::{
     event_loop
 };
 
-pub async fn run(automata: automata::Automata, compute_shader_file: Cow<'static, str>, fps: u32) {
+pub async fn run(automata: cells::Cells, compute_shader_file: Cow<'static, str>, fps: u32) {
     let event_loop = event_loop::EventLoop::new();
     let window = WindowBuilder::new().build(&event_loop).unwrap();
     
@@ -54,7 +54,7 @@ pub async fn run(automata: automata::Automata, compute_shader_file: Cow<'static,
 
                 match state.render() {
                     Ok(_) => {  },
-                    Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => state.resize(state.size), 
+                    Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => state.resize(state.physical_size), 
                     Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = event_loop::ControlFlow::Exit, 
                     Err(wgpu::SurfaceError::Timeout) => {  },
                 }

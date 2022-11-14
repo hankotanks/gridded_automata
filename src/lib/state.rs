@@ -1,44 +1,54 @@
 use std::{
     iter,
     sync::{Arc, Mutex},
-    cell::Cell
+    cell::Cell, mem
 };
 
 use wgpu::util::DeviceExt;
 
 use crate::{
     Vertex, 
-    automata::Automata
+    cells::Cells, vertex
 };
 
 pub(crate) struct State {
-    pub(crate) size: winit::dpi::PhysicalSize<u32>,
+    pub(crate) physical_size: winit::dpi::PhysicalSize<u32>,
     pub(crate) surface: wgpu::Surface,
     pub(crate) surface_config: wgpu::SurfaceConfiguration,
     pub(crate) device: wgpu::Device,
     pub(crate) queue: wgpu::Queue,
+
+    pub(crate) size_group: wgpu::BindGroup,
+
+    pub(crate) cell_data: Cells,
+    pub(crate) cell_buffers: (wgpu::Buffer, wgpu::Buffer),
+    pub(crate) cell_groups: (wgpu::BindGroup, wgpu::BindGroup),
+
+    pub(crate) compute_texture_group: wgpu::BindGroup,
+    pub(crate) compute_pipeline: wgpu::ComputePipeline,
+
+    pub(crate) vertex_buffer: wgpu::Buffer,
+    pub(crate) index_buffer: wgpu::Buffer,
+    pub(crate) render_texture_group: wgpu::BindGroup,
     pub(crate) render_pipeline: wgpu::RenderPipeline,
-    pub(crate) automata: Automata,
-    pub(crate) dim_bind_group: wgpu::BindGroup,
-    pub(crate) a_buffer: wgpu::Buffer,
-    pub(crate) b_buffer: wgpu::Buffer,
-    pub(crate) a_bind_group: wgpu::BindGroup,
-    pub(crate) b_bind_group: wgpu::BindGroup,
-    pub(crate) texture_bind_group: wgpu::BindGroup,
-    pub(crate) compute_pipeline: wgpu::ComputePipeline
 }
 
 impl State {
     pub(crate) async fn new(
         window: &winit::window::Window, 
         compute: wgpu::ShaderModuleDescriptor<'static>,
-        automata: Automata
+        cell_data: Cells
     ) -> Self {
-        let size = window.inner_size();
+        //
+        // WGPU Mandatory State Information
+        //
+
+        let physical_size = window.inner_size();
 
         let instance = wgpu::Instance::new(wgpu::Backends::all());
 
         let surface = unsafe { instance.create_surface(window) };
+        
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::default(),
@@ -60,12 +70,16 @@ impl State {
         let surface_config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: surface.get_supported_formats(&adapter)[0],
-            width: size.width,
-            height: size.height,
+            width: physical_size.width,
+            height: physical_size.height,
             present_mode: wgpu::PresentMode::Fifo
         };
 
         surface.configure(&device, &surface_config);
+
+        //
+        // GRAB SHADER
+        //
 
         let shader_file = include_str!("shader.wgsl");
         let shader = device.create_shader_module(
@@ -75,15 +89,19 @@ impl State {
             }
         );
 
-        let dim_buffer = device.create_buffer_init(
+        //
+        // DIMENSION BUFFER AND BIND GROUPS
+        //
+
+        let size_buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: None,
-                contents: bytemuck::cast_slice(&[automata.size]),
+                contents: bytemuck::cast_slice(&[cell_data.size]),
                 usage: wgpu::BufferUsages::UNIFORM,
             }
         );
 
-        let dim_bind_group_layout = device.create_bind_group_layout(
+        let size_group_layout = device.create_bind_group_layout(
             &wgpu::BindGroupLayoutDescriptor {
                 label: None,
                 entries: &[wgpu::BindGroupLayoutEntry {
@@ -99,20 +117,24 @@ impl State {
             }
         );
 
-        let dim_bind_group = device.create_bind_group(
+        let size_group = device.create_bind_group(
             &wgpu::BindGroupDescriptor {
                 label: None,
-                layout: &dim_bind_group_layout,
+                layout: &size_group_layout,
                 entries: &[wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: dim_buffer.as_entire_binding()
+                    resource: size_buffer.as_entire_binding()
                 }]
             }
         );
 
+        // 
+        // OUTPUT TEXTURE CREATION
+        //
+
         let extent = wgpu::Extent3d {
-            width: automata.size.width,
-            height: automata.size.height,
+            width: cell_data.size.width,
+            height: cell_data.size.height,
             depth_or_array_layers: 1,
         };
 
@@ -142,7 +164,166 @@ impl State {
             }
         );
 
-        let texture_bind_group_layout = device.create_bind_group_layout(
+        //
+        // COMPUTE SHADER
+        //
+
+        let cell_buffers = (
+            device.create_buffer_init(
+                &wgpu::util::BufferInitDescriptor {
+                    label: None,
+                    contents: &{
+                        cell_data.data
+                            .iter()
+                            .map(|x| u32::to_ne_bytes(*x)) 
+                            .flat_map(|f| f.into_iter())
+                            .collect::<Vec<_>>()
+                    },
+                    usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::MAP_READ
+                }
+            ), 
+            device.create_buffer(
+                &wgpu::BufferDescriptor {
+                    label: None,
+                    size: (cell_data.data.len() * 4) as wgpu::BufferAddress,
+                    usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::MAP_READ,
+                    mapped_at_creation: false,
+                }  
+            )
+        );
+
+        let cell_group_layout = device.create_bind_group_layout(
+            &wgpu::BindGroupLayoutDescriptor {
+                label: None,
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        count: None,
+                        visibility: wgpu::ShaderStages::COMPUTE,
+                        ty: wgpu::BindingType::Buffer {
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                            ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        }
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        count: None,
+                        visibility: wgpu::ShaderStages::COMPUTE,
+                        ty: wgpu::BindingType::Buffer {
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                            ty: wgpu::BufferBindingType::Storage { read_only: false },
+                        }
+                    }
+                ],
+            }
+        );
+
+        let cell_groups = (
+            device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: None,
+                layout: &cell_group_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: cell_buffers.0.as_entire_binding()
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: cell_buffers.1.as_entire_binding()
+                    }
+                ]
+            } ),
+            device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: None,
+                layout: &cell_group_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: cell_buffers.1.as_entire_binding()
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: cell_buffers.0.as_entire_binding()
+                    }
+                ]
+            } )
+        );
+
+        let compute_texture_group_layout = device.create_bind_group_layout(
+            &wgpu::BindGroupLayoutDescriptor {
+                label: None,
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::COMPUTE,
+                        ty: wgpu::BindingType::StorageTexture {
+                            access: wgpu::StorageTextureAccess::WriteOnly,
+                            format: wgpu::TextureFormat::R32Float,
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                        },
+                        count: None,
+                    }
+                ],
+            }
+        );
+
+        let compute_texture_group = device.create_bind_group(
+            &wgpu::BindGroupDescriptor {
+                label: None,
+                layout: &compute_texture_group_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: wgpu::BindingResource::TextureView(&texture_view),
+                    }
+                ],
+            }
+        );
+
+        let compute_pipeline = device.create_compute_pipeline(
+            &wgpu::ComputePipelineDescriptor {
+                label: None,
+                layout: Some(&{
+                    device.create_pipeline_layout(
+                        &wgpu::PipelineLayoutDescriptor {
+                            label: None,
+                            push_constant_ranges: &[],
+                            bind_group_layouts: &[
+                                &size_group_layout, 
+                                &cell_group_layout, 
+                                &compute_texture_group_layout
+                            ]
+                        } 
+                    )
+                } ),
+                module: &device.create_shader_module(compute),
+                entry_point: "main_cs",
+            }
+        );
+
+        //
+        // RENDER SHADER
+        //
+
+        let vertex_buffer = device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: None,
+                contents: bytemuck::cast_slice(vertex::CLIP_SPACE_EXTREMES.as_slice()),
+                usage: wgpu::BufferUsages::VERTEX
+            }
+        );
+
+        let index_buffer = device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: None,
+                contents: bytemuck::cast_slice([0, 1, 3, 0, 3, 2].as_slice()),
+                usage: wgpu::BufferUsages::INDEX
+            }
+        );
+
+        let render_texture_group_layout = device.create_bind_group_layout(
             &wgpu::BindGroupLayoutDescriptor {
                 label: None,
                 entries: &[
@@ -160,10 +341,10 @@ impl State {
             }
         );
 
-        let texture_bind_group = device.create_bind_group(
+        let render_texture_group = device.create_bind_group(
             &wgpu::BindGroupDescriptor {
                 label: None,
-                layout: &texture_bind_group_layout,
+                layout: &render_texture_group_layout,
                 entries: &[
                     wgpu::BindGroupEntry {
                         binding: 0,
@@ -173,17 +354,21 @@ impl State {
             }
         );
 
-        let render_pipeline_layout =
-            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: None,
-                bind_group_layouts: &[&dim_bind_group_layout, &texture_bind_group_layout],
-                push_constant_ranges: &[],
-            });
-
         let render_pipeline = device.create_render_pipeline(
             &wgpu::RenderPipelineDescriptor {
                 label: None,
-                layout: Some(&render_pipeline_layout),
+                layout: Some(
+                    &device.create_pipeline_layout(
+                        &wgpu::PipelineLayoutDescriptor {
+                            label: None,
+                            push_constant_ranges: &[],
+                            bind_group_layouts: &[
+                                &size_group_layout, 
+                                &render_texture_group_layout
+                            ]
+                        }
+                    )
+                ),
                 vertex: wgpu::VertexState {
                     module: &shader,
                     entry_point: "vs_main",
@@ -220,147 +405,28 @@ impl State {
             }
         );
 
-        let a_bytes = automata.data
-            .iter()
-            .map(|x| u32::to_ne_bytes(*x)) 
-            .flat_map(|f| f.into_iter())
-            .collect::<Vec<_>>();
-
-        let a_buffer = device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: None,
-                contents: &a_bytes,
-                usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::MAP_READ
-            }
-        );
-
-        let b_buffer = device.create_buffer(
-            &wgpu::BufferDescriptor {
-                label: None,
-                size: a_bytes.len() as wgpu::BufferAddress,
-                usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::MAP_READ,
-                mapped_at_creation: false,
-            }  
-        );
-
-        let layout = device.create_bind_group_layout(
-            &wgpu::BindGroupLayoutDescriptor {
-                label: None,
-                entries: &[
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        count: None,
-                        visibility: wgpu::ShaderStages::COMPUTE,
-                        ty: wgpu::BindingType::Buffer {
-                            has_dynamic_offset: false,
-                            min_binding_size: None,
-                            ty: wgpu::BufferBindingType::Storage { read_only: true },
-                        }
-                    },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 1,
-                        count: None,
-                        visibility: wgpu::ShaderStages::COMPUTE,
-                        ty: wgpu::BindingType::Buffer {
-                            has_dynamic_offset: false,
-                            min_binding_size: None,
-                            ty: wgpu::BufferBindingType::Storage { read_only: false },
-                        }
-                    },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 2,
-                        visibility: wgpu::ShaderStages::COMPUTE,
-                        ty: wgpu::BindingType::StorageTexture {
-                            access: wgpu::StorageTextureAccess::WriteOnly,
-                            format: wgpu::TextureFormat::R32Float,
-                            view_dimension: wgpu::TextureViewDimension::D2,
-                        },
-                        count: None,
-                    }
-                ],
-            }
-        );
-
-        let a_bind_group = device.create_bind_group(
-            &wgpu::BindGroupDescriptor {
-                label: None,
-                layout: &layout,
-                entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: a_buffer.as_entire_binding()
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: b_buffer.as_entire_binding()
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 2,
-                        resource: wgpu::BindingResource::TextureView(&texture_view)
-                    }
-                ],
-            }  
-        );
-
-        let b_bind_group = device.create_bind_group(
-            &wgpu::BindGroupDescriptor {
-                label: None,
-                layout: &layout,
-                entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: b_buffer.as_entire_binding()
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: a_buffer.as_entire_binding()
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 2,
-                        resource: wgpu::BindingResource::TextureView(&texture_view)
-                    }
-                ],
-            }  
-        );
-
-        let compute_pipeline = device.create_compute_pipeline(
-            &wgpu::ComputePipelineDescriptor {
-                label: None,
-                layout: Some(&{
-                    device.create_pipeline_layout(
-                        &wgpu::PipelineLayoutDescriptor {
-                            label: None,
-                            bind_group_layouts: &[&dim_bind_group_layout, &layout],
-                            push_constant_ranges: &[]
-                        } 
-                    )
-                } ),
-                module: &device.create_shader_module(compute),
-                entry_point: "main_cs",
-            }
-        );
-
         Self {
-            size,
+            physical_size,
             surface,
             surface_config,
             device,
             queue,
-            render_pipeline,
-            automata,
-            dim_bind_group,
-            a_buffer,
-            b_buffer,
-            a_bind_group,
-            b_bind_group,
-            texture_bind_group,
-            compute_pipeline
+            size_group,
+            cell_data,
+            cell_buffers,
+            cell_groups,
+            compute_texture_group,
+            compute_pipeline,
+            vertex_buffer,
+            index_buffer,
+            render_texture_group,
+            render_pipeline
         }
     }
 
     pub(crate) fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
         if new_size.width > 0 && new_size.height > 0 {
-            self.size = new_size;
+            self.physical_size = new_size;
             self.surface_config.width = new_size.width;
             self.surface_config.height = new_size.height;
             self.surface.configure(&self.device, &self.surface_config);
@@ -368,21 +434,22 @@ impl State {
     }
 
     pub(crate) fn tick(&mut self) {
-        let descriptor = wgpu::CommandEncoderDescriptor { label: None };
-        let mut encoder = self.device.create_command_encoder(&descriptor);
+        let desc = wgpu::CommandEncoderDescriptor { label: None };
+        let mut encoder = self.device.create_command_encoder(&desc);
 
         {
-            let mut compute_pass = encoder.begin_compute_pass(
-                &wgpu::ComputePassDescriptor { label: None }
-            );
+            let desc = wgpu::ComputePassDescriptor { label: None };
+            let mut compute_pass = encoder.begin_compute_pass(&desc);
 
-            // TODO
-            compute_pass.set_bind_group(0, &self.dim_bind_group, &[]);
-            compute_pass.set_bind_group(1, &self.a_bind_group, &[]);
+            compute_pass.set_bind_group(0, &self.size_group, &[]);
+            compute_pass.set_bind_group(1, &self.cell_groups.0, &[]);
+            compute_pass.set_bind_group(2, &self.compute_texture_group, &[]);
+
             compute_pass.set_pipeline(&self.compute_pipeline);
+
             compute_pass.dispatch_workgroups(
-                self.automata.size.width / 16, 
-                self.automata.size.height / 16, 
+                self.cell_data.size.width / 16, 
+                self.cell_data.size.height / 16, 
                 1
             );
         }
@@ -390,7 +457,7 @@ impl State {
         // Wait for GPU to finish
         self.queue.submit(Some(encoder.finish()));
 
-        let buffer_slice = self.b_buffer.slice(..);
+        let buffer_slice = self.cell_buffers.1.slice(..);
 
         let ready = Arc::new(Mutex::new(Cell::new(false)));
         let ready_ref = Arc::clone(&ready);
@@ -408,51 +475,23 @@ impl State {
                 .collect::<Vec<_>>();
             
             drop(data);
-            self.b_buffer.unmap();
+            self.cell_buffers.1.unmap();
 
-            self.automata.data = result;
+            self.cell_data.data = result;
         }
 
-        std::mem::swap(&mut self.a_buffer, &mut self.b_buffer);
-        std::mem::swap(&mut self.a_bind_group, &mut self.b_bind_group);
+        mem::swap(&mut self.cell_buffers.0, &mut self.cell_buffers.1);
+        mem::swap(&mut self.cell_groups.0, &mut self.cell_groups.1);
     }
-
+    
     pub(crate) fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
-        
-        let vertices = vec![
-            Vertex { position: [-1.0, -1.0, 0.0], tex: [0.0; 2] },
-            Vertex { position: [1.0, -1.0, 0.0], tex: [1.0, 0.0] },
-            Vertex { position: [-1.0, 1.0, 0.0], tex: [0.0, 1.0] },
-            Vertex { position: [1.0, 1.0, 0.0], tex: [1.0; 2] },
-        ];
-
-        let indices = vec![0, 1, 3, 0, 3, 2];
-
-        let vertex_buffer = self.device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: None,
-                contents: bytemuck::cast_slice(vertices.as_slice()),
-                usage: wgpu::BufferUsages::VERTEX
-            }
-        );
-
-        let index_count = indices.len() as u32;
-
-        let index_buffer = self.device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: None,
-                contents: bytemuck::cast_slice(indices.as_slice()),
-                usage: wgpu::BufferUsages::INDEX
-            }
-        );
-
         let output = self.surface.get_current_texture()?;
         let view = output
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
-        let descriptor = wgpu::CommandEncoderDescriptor { label: None };
-        let mut encoder = self.device.create_command_encoder(&descriptor);
+        let desc = wgpu::CommandEncoderDescriptor { label: None };
+        let mut encoder = self.device.create_command_encoder(&desc);
     
         {
             let mut render_pass = encoder.begin_render_pass(
@@ -473,19 +512,18 @@ impl State {
             );
 
             render_pass.set_pipeline(&self.render_pipeline);
-            render_pass.set_bind_group(0, &self.dim_bind_group, &[]);
-            render_pass.set_bind_group(1, &self.texture_bind_group, &[]);
-            render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
-            render_pass.set_index_buffer(
-                index_buffer.slice(..), 
-                wgpu::IndexFormat::Uint32
-            );
 
-            render_pass.draw_indexed(0..index_count, 0, 0..1);
+            render_pass.set_bind_group(0, &self.size_group, &[]);
+            render_pass.set_bind_group(1, &self.render_texture_group, &[]);
+
+            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+            render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
             
+            render_pass.draw_indexed(0..6, 0, 0..1); 
         }
 
         self.queue.submit(iter::once(encoder.finish()));
+        
         output.present();
 
         Ok(())

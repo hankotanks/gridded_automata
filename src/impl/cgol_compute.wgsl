@@ -12,7 +12,7 @@ var<storage, read> old: array<u32>;
 @group(1) @binding(1)
 var<storage, read_write> updated: array<u32>;
 
-@group(1) @binding(2)
+@group(2) @binding(0)
 var output_texture: texture_storage_2d<r32float, write>;
 
 fn wrap(coord: vec2<i32>) -> u32 {
