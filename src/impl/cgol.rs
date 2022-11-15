@@ -1,14 +1,17 @@
 use gridded_automata::{
     run,
-    automata, Config
+    automata, 
+    Config
 };
 
 fn main() {
-    let size = automata::Size { height: 256, width: 256 };
-
-    let automata = automata::rand_automata(size);
+    let automata = automata::rand_automata(automata::Size {
+        height: 256,
+        width: 256
+    } );
 
     let config = Config {
+        title: Some("Conway's Game of Life".into()),
         fps: 60,
         state_shader: include_str!("cgol.wgsl").into()
     };

@@ -19,6 +19,7 @@ use winit::{
 };
 
 pub struct Config {
+    pub title: Option<Cow<'static, str>>,
     pub fps: u32,
     pub state_shader: Cow<'static, str>
 }
@@ -39,7 +40,11 @@ fn build_compute_shader(compute_shader_file: Cow<'static, str>) -> wgpu::ShaderM
 
 pub async fn run(automata: automata::Automata, config: Config) {
     let event_loop = event_loop::EventLoop::new();
-    let window = WindowBuilder::new().build(&event_loop).unwrap();
+
+    let window = WindowBuilder::new()
+        .with_title(config.title.unwrap_or_default())
+        .build(&event_loop)
+        .unwrap();
 
     let mut state = state::State::new(
         &window,
@@ -79,7 +84,7 @@ pub async fn run(automata: automata::Automata, config: Config) {
                 }
 
                 /* TODO */ //dbg!(render_time.elapsed());
-                
+
             }
             event::Event::MainEventsCleared => { 
                 if accumulated_time >= fps {
