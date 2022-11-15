@@ -6,6 +6,7 @@ pub(crate) use vertex::CLIP_SPACE_EXTREMA;
 
 pub mod automata;
 
+use std::collections::HashMap;
 use std::{
     borrow::Cow, 
     time
@@ -21,20 +22,84 @@ use winit::{
 pub struct Config {
     pub title: Option<Cow<'static, str>>,
     pub fps: u32,
-    pub state_shader: Cow<'static, str>
+    pub state_shader: Cow<'static, str>,
+    pub coloring: ColoringScheme
 }
 
-fn build_compute_shader(compute_shader_file: Cow<'static, str>) -> wgpu::ShaderModuleDescriptor {
-    let mut compute_shader_source = String::new();
-    compute_shader_source.push_str(include_str!("ca_header.wgsl"));
-    compute_shader_source.push('\n');
-    compute_shader_source.push_str(&compute_shader_file);
-    compute_shader_source.push('\n');
-    compute_shader_source.push_str(include_str!("ca_caller.wgsl"));
+pub enum ColoringScheme {
+    Lerp { start: [f32; 3], end: [f32; 3], num_states: u32 },
+    Living([f32; 3]),
+    Dictionary(HashMap<u32, [f32; 3]>)
+}
 
-    wgpu::ShaderModuleDescriptor {
-        label: None,
-        source: wgpu::ShaderSource::Wgsl(compute_shader_source.into())
+impl ColoringScheme {
+    fn get_color(&self) -> Cow<'static, str> {
+        match &self {
+            Self::Lerp { start, end, num_states } => {
+                format!(
+                    "fn get_color(state: u32) -> vec3<f32> {{
+                        if(state == 0u) {{ return vec3<f32>(0.0, 0.0, 0.0); }}
+                        let s = f32(state) / f32({});
+                        return mix({}, {}, vec3<f32>(s, s, s));
+                    }}", 
+                    num_states, 
+                    format!(
+                        "vec3<f32>({:?}, {:?}, {:?})", 
+                        start[0], 
+                        start[1], 
+                        start[2]
+                    ), 
+                    format!(
+                        "vec3<f32>({:?}, {:?}, {:?})", 
+                        end[0], 
+                        end[1], 
+                        end[2]
+                    )
+                )
+            }
+            Self::Living(alive) => {
+                format!(
+                    "fn get_color(state: u32) -> vec3<f32> {{
+                        if(state == 0u) {{ return vec3<f32>(0.0, 0.0, 0.0); }}
+                        return {};
+                    }}",
+                    format!(
+                        "vec3<f32>({:?}, {:?}, {:?})", 
+                        alive[0], 
+                        alive[1], 
+                        alive[2]
+                    ), 
+                )
+            },
+            Self::Dictionary(color_map) => { 
+                format!(        
+                    "fn get_color(state: u32) -> vec3<f32> {{
+                        {}
+                        return vec3<f32>(0.0, 0.0, 0.0);
+                    }}",
+                    {
+                        let mut conditionals = "".to_string();
+                        for (state, color) in color_map.iter() {
+                            conditionals.push_str(
+                                &format!(
+                                    "if(state == {}u) {{
+                                        return {};
+                                    }}",
+                                    state,
+                                    format!(
+                                        "vec3<f32>({:?}, {:?}, {:?})", 
+                                        color[0], 
+                                        color[1], 
+                                        color[2]
+                                    )
+                                )
+                            );
+                        }
+                        conditionals
+                    }
+                )
+            },
+        }.into()
     }
 }
 
@@ -42,13 +107,25 @@ pub async fn run(automata: automata::Automata, config: Config) {
     let event_loop = event_loop::EventLoop::new();
 
     let window = WindowBuilder::new()
-        .with_title(config.title.unwrap_or_default())
+        .with_title(config.title.clone().unwrap_or_default())
         .build(&event_loop)
         .unwrap();
 
+    let shader_descriptor = wgpu::ShaderModuleDescriptor {
+        label: None,
+        source: wgpu::ShaderSource::Wgsl(
+            vec![
+                include_str!("ca_header.wgsl"),
+                &config.coloring.get_color(),
+                &config.state_shader,
+                include_str!("ca_caller.wgsl")
+            ].join("\n").into()
+        )
+    };
+
     let mut state = state::State::new(
         &window,
-        build_compute_shader(config.state_shader),
+        shader_descriptor,
         automata
     ).await;
 
