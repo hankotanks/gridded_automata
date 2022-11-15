@@ -18,6 +18,11 @@ use winit::{
     event_loop
 };
 
+pub struct Config {
+    pub fps: u32,
+    pub state_shader: Cow<'static, str>
+}
+
 fn build_compute_shader(compute_shader_file: Cow<'static, str>) -> wgpu::ShaderModuleDescriptor {
     let mut compute_shader_source = String::new();
     compute_shader_source.push_str(include_str!("ca_header.wgsl"));
@@ -32,17 +37,17 @@ fn build_compute_shader(compute_shader_file: Cow<'static, str>) -> wgpu::ShaderM
     }
 }
 
-pub async fn run(automata: automata::Automata, compute_shader_file: Cow<'static, str>, fps: u32) {
+pub async fn run(automata: automata::Automata, config: Config) {
     let event_loop = event_loop::EventLoop::new();
     let window = WindowBuilder::new().build(&event_loop).unwrap();
 
     let mut state = state::State::new(
         &window,
-        build_compute_shader(compute_shader_file),
+        build_compute_shader(config.state_shader),
         automata
     ).await;
 
-    let fps = (fps as f32).recip();
+    let fps = (config.fps as f32).recip();
     let mut accumulated_time = 0.0;
     let mut current = time::Instant::now();
 
@@ -63,7 +68,8 @@ pub async fn run(automata: automata::Automata, compute_shader_file: Cow<'static,
                 }
             }
             event::Event::RedrawRequested(window_id) if window_id == window.id() => {
-                /* TODO */ let render_time = time::Instant::now();
+                
+                /* TODO */ //let render_time = time::Instant::now();
 
                 match state.render() {
                     Ok(_) => {  },
@@ -72,16 +78,17 @@ pub async fn run(automata: automata::Automata, compute_shader_file: Cow<'static,
                     Err(wgpu::SurfaceError::Timeout) => {  },
                 }
 
-                /* TODO */ dbg!(render_time.elapsed());
+                /* TODO */ //dbg!(render_time.elapsed());
+                
             }
             event::Event::MainEventsCleared => { 
                 if accumulated_time >= fps {
 
-                    /* TODO */ let automata_time = time::Instant::now();
+                    /* TODO */ //let automata_time = time::Instant::now();
                     
                     state.tick();
 
-                    /* TODO */ dbg!(automata_time.elapsed());
+                    /* TODO */ //dbg!(automata_time.elapsed());
 
                     accumulated_time -= fps;
                 }

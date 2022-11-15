@@ -147,7 +147,7 @@ impl State {
                 mip_level_count: 1,
                 sample_count: 1,
                 dimension: wgpu::TextureDimension::D2,
-                format: wgpu::TextureFormat::R32Float,
+                format: wgpu::TextureFormat::Rgba32Float,
                 usage: wgpu::TextureUsages::STORAGE_BINDING | wgpu::TextureUsages::TEXTURE_BINDING,
             }
         );
@@ -155,7 +155,7 @@ impl State {
         let texture_view = texture.create_view(
             &wgpu::TextureViewDescriptor {
                 label: None,
-                format: Some(wgpu::TextureFormat::R32Float),
+                format: Some(wgpu::TextureFormat::Rgba32Float),
                 dimension: Some(wgpu::TextureViewDimension::D2),
                 aspect: wgpu::TextureAspect::All,
                 base_mip_level: 0,
@@ -262,7 +262,7 @@ impl State {
                         visibility: wgpu::ShaderStages::COMPUTE,
                         ty: wgpu::BindingType::StorageTexture {
                             access: wgpu::StorageTextureAccess::WriteOnly,
-                            format: wgpu::TextureFormat::R32Float,
+                            format: wgpu::TextureFormat::Rgba32Float,
                             view_dimension: wgpu::TextureViewDimension::D2,
                         },
                         count: None,

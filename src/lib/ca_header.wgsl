@@ -2,9 +2,19 @@
 // Declare some useful structs
 //
 
-struct Size { height: u32, width: u32 }
+struct Size { 
+    height: u32, 
+    width: u32 
+}
 
-struct Neighborhood { cells: array<u32, 8> }
+struct Neighborhood { 
+    cells: array<u32, 8> 
+}
+
+struct Cell {
+    state: u32,
+    color: vec3<f32>
+}
 
 //
 // Read uniforms and storages
@@ -20,7 +30,7 @@ var<storage, read> current: array<u32>;
 var<storage, read_write> updated: array<u32>;
 
 @group(2) @binding(0)
-var output_texture: texture_storage_2d<r32float, write>;
+var output_texture: texture_storage_2d<rgba32float, write>;
 
 //
 // Helper methods
@@ -80,4 +90,20 @@ fn count_living(neighborhood: Neighborhood) -> u32 {
     if(neighborhood.cells[7] != 0u) { neighbor_count++; }
 
     return neighbor_count;
+}
+
+fn color_mono(l_color: vec3<f32>, c_s: u32) -> vec3<f32> {
+    if(c_s != 0u) {
+        return l_color;
+    } else {
+        return vec3<f32>(0.0, 0.0, 0.0);
+    }
+}
+
+fn color_lerp(start: vec3<f32>, end: vec3<f32>, max_s: u32, c_s: u32) -> vec3<f32> {
+    if(c_s == 0u) { return vec3<f32>(0.0, 0.0, 0.0); }
+
+    let s = f32(c_s) / f32(max_s);
+
+    return mix(start, end, vec3<f32>(s, s, s));
 }

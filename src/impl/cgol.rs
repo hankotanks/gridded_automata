@@ -1,21 +1,20 @@
 use gridded_automata::{
     run,
-    automata
+    automata, Config
 };
 
 fn main() {
-    let size = automata::Size {
-        height: 512,
-        width: 512
-    };
+    let size = automata::Size { height: 256, width: 256 };
 
     let automata = automata::rand_automata(size);
 
-    let compute_shader_file = include_str!("cgol_compute.wgsl").into();
+    let config = Config {
+        fps: 60,
+        state_shader: include_str!("cgol.wgsl").into()
+    };
     
     pollster::block_on(run(
         automata,
-        compute_shader_file,
-        60
+        config
     ));
 }
