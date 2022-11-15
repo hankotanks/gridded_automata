@@ -86,3 +86,18 @@ fn count_living(neighborhood: Neighborhood) -> u32 {
 
     return neighbor_count;
 }
+
+fn count_matching(neighborhood: Neighborhood, state: u32) -> u32 {
+    var neighbor_count = 0u;
+    
+    if(neighborhood.cells[0] == state) { neighbor_count++; }
+    if(neighborhood.cells[1] == state) { neighbor_count++; }
+    if(neighborhood.cells[2] == state) { neighbor_count++; }
+    if(neighborhood.cells[3] == state) { neighbor_count++; }
+    if(neighborhood.cells[4] == state) { neighbor_count++; }
+    if(neighborhood.cells[5] == state) { neighbor_count++; }
+    if(neighborhood.cells[6] == state) { neighbor_count++; }
+    if(neighborhood.cells[7] == state) { neighbor_count++; }
+
+    return neighbor_count;
+}
