@@ -18,8 +18,8 @@ name = "cgol"
 path = "src/impl/cgol.rs"
 
 [[bin]]
-name = "wire_world"
-path = "src/impl/wire_world.rs"
+name = "ww"
+path = "src/impl/ww.rs"
 
 [lib]
 name = "gridded_automata"

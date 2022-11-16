@@ -4,6 +4,8 @@ use cgmath::Point2;
 use image::{DynamicImage, GenericImageView};
 use rand::Rng;
 
+use crate::ColoringScheme;
+
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Size {
@@ -49,18 +51,15 @@ pub fn rand_automata(size: Size) -> Automata {
     }
 }
 
-pub fn read_automata_from_file(image: DynamicImage) -> (Automata, HashMap<u32, [f32; 3]>) {
+pub fn read_automata_from_file(image: DynamicImage) -> (Automata, ColoringScheme) {
     let size = image.dimensions();
-    let size = Size { height: size.1, width: size.0 };
+    let mut automata = Automata::new(Size { height: size.1, width: size.0 });
 
     let mut states: HashMap<image::Rgb<u8>, u32> = HashMap::new();
 
-    let mut automata = Automata::new(size);
-
-    let image = image.into_rgb8();
-
-    for x in 0..size.width {
-        for y in 0..size.height {
+    let image = image.to_rgb8();
+    for x in 0..automata.size.width {
+        for y in 0..automata.size.height {
             let curr_state;
             match states.get(&image[(x, y)]) {
                 Some(&state) => curr_state = state,
@@ -76,11 +75,11 @@ pub fn read_automata_from_file(image: DynamicImage) -> (Automata, HashMap<u32, [
     let mut dict = HashMap::new();
     for (pixel, state) in states.into_iter() {
         dict.insert(state, [
-            pixel.0[0] as f32 / 255.0,
-            pixel.0[1] as f32 / 255.0,
-            pixel.0[2] as f32 / 255.0
+            pixel.0[0] as f32 / 255f32,
+            pixel.0[1] as f32 / 255f32,
+            pixel.0[2] as f32 / 255f32
         ]);
     }
     
-    (automata, dict)
+    (automata, ColoringScheme::Dictionary(dict))
 }
