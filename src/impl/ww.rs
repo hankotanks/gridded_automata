@@ -5,8 +5,8 @@ use gridded_automata::{
 };
 
 fn main() {
-    let (automata, cs) = automata::read_automata_from_file(
-        image::open("./src/impl/ww_sample_1.bmp").unwrap()
+    let (automata, cs) = automata::load_automata_from_image(
+        image::open("./src/impl/ww_sample_2.bmp").unwrap()
     );
 
     let config = Config {

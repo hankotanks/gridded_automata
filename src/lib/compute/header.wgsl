@@ -3,8 +3,8 @@
 //
 
 struct Size { 
-    height: u32, 
-    width: u32 
+    width: u32, 
+    height: u32 
 }
 
 struct Neighborhood { 

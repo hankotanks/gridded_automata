@@ -10,8 +10,8 @@ struct VertexOutput {
 };
 
 struct Size {
-    height: u32,
-    width: u32
+    width: u32,
+    height: u32
 }
 
 @group(0) @binding(0)

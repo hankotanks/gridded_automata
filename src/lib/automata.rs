@@ -1,16 +1,17 @@
-use std::{ops::{Index, IndexMut}, collections::HashMap};
+use std::{
+    collections,
+    ops::{Index, IndexMut}
+};
 
 use cgmath::Point2;
-use image::{DynamicImage, GenericImageView};
-use rand::Rng;
 
-use crate::ColoringScheme;
+use crate::ColorScheme;
 
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Size {
+    pub width: u32,
     pub height: u32,
-    pub width: u32
 }
 
 pub struct Automata {
@@ -43,21 +44,21 @@ pub fn rand_automata(size: Size) -> Automata {
 
     Automata {
         data: { 
-            (0..(size.height * size.width))
-                .map(|_| prng.gen_range(0..=1) )
+            (0..(size.width * size.height))
+                .map(|_| rand::Rng::gen_range(&mut prng, 0..=1))
                 .collect::<Vec<_>>() 
-            },
+        },
         size
     }
 }
 
-pub fn read_automata_from_file(image: DynamicImage) -> (Automata, ColoringScheme) {
-    let size = image.dimensions();
-    let mut automata = Automata::new(Size { height: size.1, width: size.0 });
-
-    let mut states: HashMap<image::Rgb<u8>, u32> = HashMap::new();
-
+pub fn load_automata_from_image(image: image::DynamicImage) -> (Automata, ColorScheme) {
     let image = image.to_rgb8();
+
+    let size = Size { width: image.width(), height: image.height() };
+    let mut automata = Automata::new(size);
+
+    let mut states = collections::HashMap::new();
     for x in 0..automata.size.width {
         for y in 0..automata.size.height {
             let curr_state;
@@ -72,14 +73,15 @@ pub fn read_automata_from_file(image: DynamicImage) -> (Automata, ColoringScheme
         }
     }
 
-    let mut dict = HashMap::new();
-    for (pixel, state) in states.into_iter() {
-        dict.insert(state, [
-            pixel.0[0] as f32 / 255f32,
-            pixel.0[1] as f32 / 255f32,
-            pixel.0[2] as f32 / 255f32
-        ]);
+    fn to_color(pixel: image::Rgb<u8>) -> [f32; 3] {
+        let p = pixel.0;
+        [p[0] as f32 / 255f32, p[1] as f32 / 255f32, p[2] as f32 / 255f32]
     }
+
+    let states = states
+        .into_iter()
+        .map(|(pixel, curr_state)| (curr_state, to_color(pixel)))
+        .collect::<Vec<_>>();
     
-    (automata, ColoringScheme::Dictionary(dict))
+    (automata, ColorScheme::Map(states))
 }

@@ -38,7 +38,7 @@ pub(crate) struct State {
 impl State {
     pub(crate) async fn new(
         window: &winit::window::Window, 
-        compute: wgpu::ShaderModuleDescriptor<'static>,
+        shader_descriptor: wgpu::ShaderModuleDescriptor<'static>,
         automata: automata::Automata
     ) -> Self {
         //
@@ -83,7 +83,7 @@ impl State {
         // GRAB SHADER
         //
 
-        let shader_file = include_str!("shader.wgsl");
+        let shader_file = include_str!("render.wgsl");
         let shader = device.create_shader_module(
             wgpu::ShaderModuleDescriptor {
                 label: None,
@@ -300,7 +300,7 @@ impl State {
                         } 
                     )
                 } ),
-                module: &device.create_shader_module(compute),
+                module: &device.create_shader_module(shader_descriptor),
                 entry_point: "main_cs",
             }
         );
@@ -443,8 +443,11 @@ impl State {
             let desc = wgpu::ComputePassDescriptor { label: None };
             let mut compute_pass = encoder.begin_compute_pass(&desc);
 
+            // Access to dimensions, cell arrays and...
             compute_pass.set_bind_group(0, &self.size_group, &[]);
             compute_pass.set_bind_group(1, &self.cell_groups.0, &[]);
+
+            // ...output texture for the render attachment
             compute_pass.set_bind_group(2, &self.compute_texture_group, &[]);
 
             compute_pass.set_pipeline(&self.compute_pipeline);
@@ -459,16 +462,20 @@ impl State {
         // Wait for GPU to finish
         self.queue.submit(Some(encoder.finish()));
 
+        // Get the updated buffer's data as a slice
         let buffer_slice = self.cell_buffers.1.slice(..);
 
+        // Wait for the callback from map_async before proceeding
         let ready = Arc::new(Mutex::new(Cell::new(false)));
         let ready_ref = Arc::clone(&ready);
         buffer_slice.map_async(wgpu::MapMode::Read, move |_| { 
             ready_ref.lock().unwrap().set(true);
         } );
 
+        // Wait until resources are cleaned up
         self.device.poll(wgpu::Maintain::Wait);
 
+        // Read the cell data from the buffer slice
         if ready.lock().unwrap().get() {
             let data = buffer_slice.get_mapped_range();
             let result = data
@@ -482,6 +489,7 @@ impl State {
             self.automata.data = result;
         }
 
+        // Swap the `current` and `updated` cell arrays for the next gen
         mem::swap(&mut self.cell_buffers.0, &mut self.cell_buffers.1);
         mem::swap(&mut self.cell_groups.0, &mut self.cell_groups.1);
     }
@@ -515,12 +523,17 @@ impl State {
 
             render_pass.set_pipeline(&self.render_pipeline);
 
+            // The render shader needs access to the field's dimensions...
             render_pass.set_bind_group(0, &self.size_group, &[]);
+
+            // ...and the output texture from the compute shader
             render_pass.set_bind_group(1, &self.render_texture_group, &[]);
 
+            // Setup the vertex and index buffers (which are constant)
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
             
+            // Finally, draw
             render_pass.draw_indexed(0..6, 0, 0..1); 
         }
 
