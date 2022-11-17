@@ -13,6 +13,10 @@ image = "0.24.5"
 
 rand = "*"
 
+[lib]
+name = "gridded_automata"
+path = "src/lib/mod.rs"
+
 [[bin]]
 name = "cgol"
 path = "src/impl/cgol.rs"
@@ -21,6 +25,10 @@ path = "src/impl/cgol.rs"
 name = "ww"
 path = "src/impl/ww.rs"
 
-[lib]
-name = "gridded_automata"
-path = "src/lib/mod.rs"
+[[bin]]
+name = "bb"
+path = "src/impl/bb.rs"
+
+[[bin]]
+name = "lant"
+path = "src/impl/lant.rs"

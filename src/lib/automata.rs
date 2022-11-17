@@ -54,7 +54,7 @@ pub fn rand_automata(size: Size) -> Automata {
     Automata {
         data: { 
             (0..(size.width * size.height))
-                .map(|_| rand::Rng::gen_range(&mut prng, 0..=1))
+                .map(|_| rand::Rng::gen_range(&mut prng, 0..=2))
                 .collect::<Vec<_>>() 
         },
         size

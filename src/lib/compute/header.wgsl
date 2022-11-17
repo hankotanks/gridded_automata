@@ -101,3 +101,19 @@ fn count_matching(neighborhood: Neighborhood, state: u32) -> u32 {
 
     return neighbor_count;
 }
+
+fn up(coord: vec2<i32>) -> u32 {
+    return current[wrap(vec2<i32>(coord.x, coord.y - 1))];
+}
+
+fn left(coord: vec2<i32>) -> u32 {
+    return current[wrap(vec2<i32>(coord.x - 1, coord.y))];
+}
+
+fn right(coord: vec2<i32>) -> u32 {
+    return current[wrap(vec2<i32>(coord.x + 1, coord.y))];
+}
+
+fn down(coord: vec2<i32>) -> u32 {
+    return current[wrap(vec2<i32>(coord.x, coord.y + 1))];
+}
