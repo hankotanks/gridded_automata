@@ -19,16 +19,20 @@ path = "src/lib/mod.rs"
 
 [[bin]]
 name = "cgol"
-path = "src/impl/cgol.rs"
+path = "src/bin/cgol.rs"
 
 [[bin]]
 name = "ww"
-path = "src/impl/ww.rs"
+path = "src/bin/ww.rs"
 
 [[bin]]
 name = "bb"
-path = "src/impl/bb.rs"
+path = "src/bin/bb.rs"
 
 [[bin]]
 name = "lant"
-path = "src/impl/lant.rs"
+path = "src/bin/lant.rs"
+
+[[bin]]
+name = "seeds"
+path = "src/bin/seeds.rs"

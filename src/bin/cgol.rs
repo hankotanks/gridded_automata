@@ -7,7 +7,8 @@ use gridded_automata::{
 
 fn main() {
     let automata = automata::rand_automata(
-        automata::Size { width: 640, height: 512 },
+        automata::Size { width: 512, height: 512 },
+        None,
         &[(0..2, 1.0)]
     );
 

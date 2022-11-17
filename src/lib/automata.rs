@@ -53,20 +53,36 @@ impl Automata {
     }
 }
 
-pub fn rand_automata(size: Size, states: &[(ops::Range<u32>, f32)]) -> Automata {
+pub fn rand_automata(
+    size: Size, 
+    spawn: Option<Size>, 
+    states: &[(ops::Range<u32>, f32)]
+) -> Automata {
     let mut prng = rand::thread_rng();
 
-    Automata {
-        data: { 
-            (0..(size.width * size.height))
-                .map(|_| { 
-                    let choice = states.choose_weighted(&mut prng, |s| s.1 );
-                    prng.gen_range(choice.unwrap().0.clone()) 
-                } )
-                .collect::<Vec<_>>() 
+    let mut automata = Automata::new(size);
+    match spawn {
+        Some(spawn) => {
+            let (hw, hh) = (spawn.width / 2, spawn.height / 2);
+            for x in (size.width / 2 - hw)..(size.width / 2 + hw) {
+                for y in (size.height / 2 - hh)..(size.height / 2 + hh) {
+                    let choice = states
+                        .choose_weighted(&mut prng, |s| s.1 );
+                    automata[(x, y).into()] = prng.gen_range(choice.unwrap().0.clone());
+                }
+            }
         },
-        size
+        None => {
+            automata.data = (0..(size.width * size.height))
+                .map(|_| { 
+                    let choice = states
+                        .choose_weighted(&mut prng, |s| s.1 );
+                    prng.gen_range(choice.unwrap().0.clone()) } )
+                .collect::<Vec<_>>();
+        }
     }
+    
+    automata
 }
 
 pub fn load_automata_from_image(image: image::DynamicImage) -> (Automata, ColorScheme) {

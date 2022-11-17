@@ -8,14 +8,15 @@ use gridded_automata::{
 fn main() {
     let automata = automata::rand_automata(
         automata::Size { width: 512, height: 512 },
-        &[(0..3, 1.0)]
+        Some(automata::Size { width: 32, height: 32 } ),
+        &[(0..2, 1.0)]
     );
 
     let config = Config {
-        title: Some("Brian's Brain".into()),
+        title: Some("Seeds".into()),
         fps: 60,
-        state_shader: include_str!("bb.wgsl").into(),
-        coloring: ColorScheme::Map(vec![(2, [0.0, 0.4, 0.8]), (1, [0.0, 0.8, 0.4])])
+        state_shader: include_str!("seeds.wgsl").into(),
+        coloring: ColorScheme::Living([1.0; 3])
     };
     
     pollster::block_on(run(automata, config));

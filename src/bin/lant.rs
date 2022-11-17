@@ -13,7 +13,7 @@ fn main() {
 
     let config = Config {
         title: Some("Langton's Ant".into()),
-        fps: 600,
+        fps: 60,
         state_shader: include_str!("lant.wgsl").into(),
         coloring: ColorScheme::Map(vec![
             (0, [0.0; 3]), (1, [1.0, 0.0, 0.0]), (2, [1.0, 0.0, 0.0]), (3, [1.0, 0.0, 0.0]), (4, [1.0, 0.0, 0.0]),
