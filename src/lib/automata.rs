@@ -1,6 +1,11 @@
 use std::{
     collections,
-    ops::{Index, IndexMut}
+    ops::{Index, IndexMut, self}
+};
+
+use rand::{
+    Rng,
+    seq::SliceRandom
 };
 
 use winit::dpi;
@@ -48,13 +53,16 @@ impl Automata {
     }
 }
 
-pub fn rand_automata(size: Size) -> Automata {
+pub fn rand_automata(size: Size, states: &[(ops::Range<u32>, f32)]) -> Automata {
     let mut prng = rand::thread_rng();
 
     Automata {
         data: { 
             (0..(size.width * size.height))
-                .map(|_| rand::Rng::gen_range(&mut prng, 0..=2))
+                .map(|_| { 
+                    let choice = states.choose_weighted(&mut prng, |s| s.1 );
+                    prng.gen_range(choice.unwrap().0.clone()) 
+                } )
                 .collect::<Vec<_>>() 
         },
         size

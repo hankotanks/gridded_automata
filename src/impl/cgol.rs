@@ -6,10 +6,10 @@ use gridded_automata::{
 };
 
 fn main() {
-    let automata = automata::rand_automata(automata::Size {
-        width: 640,
-        height: 512
-    } );
+    let automata = automata::rand_automata(
+        automata::Size { width: 640, height: 512 },
+        &[(0..2, 1.0)]
+    );
 
     let config = Config {
         title: Some("Conway's Game of Life".into()),
