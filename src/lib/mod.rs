@@ -12,6 +12,7 @@ use std::{
 };
 
 use winit::{
+    dpi,
     window::WindowBuilder,
     event,
     event::WindowEvent,
@@ -26,80 +27,48 @@ pub struct Config {
 }
 
 pub enum ColorScheme {
-    Lerp { start: [f32; 3], end: [f32; 3], num_states: u32 },
+    Lerp { start: [f32; 3], end: [f32; 3], states: u32 },
     Living([f32; 3]),
     Map(Vec<(u32, [f32; 3])>)
 }
 
 impl ColorScheme {
     fn get_color(&self) -> Cow<'static, str> {
-        // Returns the shader code that determines how cells are colored
-        // This is inserted between the ca_header and ca_tail blocks
+        // Inserted between header and tail blocks
+        // Determines how cells should be colored
         match &self {
-            Self::Lerp { start, end, num_states } => {
-                format!(
-                    "fn get_color(state: u32) -> vec3<f32> {{
-                        if(state == 0u) {{ return vec3<f32>(0.0, 0.0, 0.0); }}
-                        let s = f32(state) / f32({});
-                        return mix({}, {}, vec3<f32>(s, s, s));
-                    }}", 
-                    num_states, 
-                    format!(
-                        "vec3<f32>({:?}, {:?}, {:?})", 
-                        start[0], 
-                        start[1], 
-                        start[2]
-                    ), 
-                    format!(
-                        "vec3<f32>({:?}, {:?}, {:?})", 
-                        end[0], 
-                        end[1], 
-                        end[2]
+            Self::Lerp { start, end, states } => format!("
+                let START: vec3<f32> = vec3<f32>({:?}, {:?}, {:?});
+                let END: vec3<f32> = vec3<f32>({:?}, {:?}, {:?});
+                fn get_color(state: u32) -> vec3<f32> {{
+                    if(state == 0u) {{ return vec3<f32>(0.0, 0.0, 0.0); }}
+                    let s = f32(state) / f32({});
+                    return mix(START, END, vec3<f32>(s, s, s));
+                }}",
+                start[0], start[1], start[2], end[0], end[1], end[2], states
+            ),
+            Self::Living(alive) => format!("
+                fn get_color(state: u32) -> vec3<f32> {{
+                    if(state == 0u) {{ return vec3<f32>(0.0, 0.0, 0.0); }}
+                    return vec3<f32>({:?}, {:?}, {:?});
+                }}",
+                alive[0], alive[1], alive[2], 
+            ),
+            Self::Map(colors) => format!("     
+                fn get_color(state: u32) -> vec3<f32> {{
+                    {}
+                    return vec3<f32>(0.0, 0.0, 0.0);
+                }}",
+                colors.iter().fold("".to_string(), |conds, (state, color)| [
+                    conds, 
+                    format!("
+                        if(state == {}u) {{ 
+                            return vec3<f32>({:?}, {:?}, {:?}); 
+                        }}",
+                        state, color[0], color[1], color[2]
                     )
-                )
-            },
-            Self::Living(alive) => {
-                format!(
-                    "fn get_color(state: u32) -> vec3<f32> {{
-                        if(state == 0u) {{ return vec3<f32>(0.0, 0.0, 0.0); }}
-                        return {};
-                    }}",
-                    format!(
-                        "vec3<f32>({:?}, {:?}, {:?})", 
-                        alive[0], 
-                        alive[1], 
-                        alive[2]
-                    ), 
-                )
-            },
-            Self::Map(color_map) => { 
-                format!(        
-                    "fn get_color(state: u32) -> vec3<f32> {{
-                        {}
-                        return vec3<f32>(0.0, 0.0, 0.0);
-                    }}",
-                    {
-                        let mut conditionals = "".to_string();
-                        for (state, color) in color_map.iter() {
-                            conditionals.push_str(
-                                &format!(
-                                    "if(state == {}u) {{
-                                        return {};
-                                    }}",
-                                    state,
-                                    format!(
-                                        "vec3<f32>({:?}, {:?}, {:?})", 
-                                        color[0], 
-                                        color[1], 
-                                        color[2]
-                                    )
-                                )
-                            );
-                        }
-                        conditionals
-                    }
-                )
-            }
+                ].join("")
+            ))
         }.into()
     }
 }
@@ -109,6 +78,7 @@ pub async fn run(automata: automata::Automata, config: Config) {
 
     let window = WindowBuilder::new()
         .with_title(config.title.clone().unwrap_or_default())
+        .with_inner_size::<dpi::Size>(automata.size.into())
         .build(&event_loop)
         .unwrap();
 

@@ -15,7 +15,7 @@ fn main() {
         title: Some("Conway's Game of Life".into()),
         fps: 60,
         state_shader: include_str!("cgol.wgsl").into(),
-        coloring: ColorScheme::Lerp { start: [1.0, 0.0, 0.0], end: [0.0, 0.1, 1.0], num_states: 6u32 }
+        coloring: ColorScheme::Lerp { start: [1.0, 0.0, 0.0], end: [0.0, 0.1, 1.0], states: 6u32 }
     };
     
     pollster::block_on(run(automata, config));

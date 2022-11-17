@@ -3,6 +3,7 @@ use std::{
     ops::{Index, IndexMut}
 };
 
+use winit::dpi;
 use cgmath::Point2;
 
 use crate::ColorScheme;
@@ -12,6 +13,14 @@ use crate::ColorScheme;
 pub struct Size {
     pub width: u32,
     pub height: u32,
+}
+
+#[allow(clippy::from_over_into)]
+impl Into<dpi::Size> for Size {
+    fn into(self) -> dpi::Size {
+        let (width, height) = (self.width, self.height);
+        dpi::Size::Physical(dpi::PhysicalSize { width, height } )
+    }
 }
 
 pub struct Automata {
@@ -35,7 +44,7 @@ impl IndexMut<Point2<u32>> for Automata {
 
 impl Automata {
     pub fn new(size: Size) -> Self {
-        Automata { data: vec![0; (size.width * size.height) as usize], size }
+        Self { data: vec![0; (size.width * size.height) as usize], size }
     }
 }
 
