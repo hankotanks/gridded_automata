@@ -5,6 +5,7 @@ pub(crate) use vertex::Vertex;
 pub(crate) use vertex::CLIP_SPACE_EXTREMA;
 
 pub mod automata;
+pub mod rules;
 
 use std::{
     time,
