@@ -13,20 +13,15 @@ fn main() {
         &[(0..2, 1.0)]
     );
 
-    use rules::symmetry::*;
-    use rules::Neighborhood;
-    use rules::Rule;
-    let mut rules = rules::RuleList::new(ASYMMETRIC, Neighborhood::Moore);
-    for i in 1u32..6 {
-        rules.add_rule(i, i + 1, Rule::Counting { state: None, count: 2 } );
-        rules.add_rule(i, i + 1, Rule::Counting { state: None, count: 3 } );
-    }
-    rules.add_rule(6, 6, Rule::Counting { state: None, count: 2 } );
-    rules.add_rule(6, 6, Rule::Counting { state: None, count: 3 } );
-    rules.add_rule(0, 1, Rule::Counting { state: None, count: 3 } );
-    for i in 1u32..=6 {
-        rules.add_rule(i, 0, Rule::Decay);
-    }
+    use rules::{ symmetry, Neighborhood, Rule };
+    let rules = rules::RuleList::from_rules(symmetry::ASYMMETRIC, Neighborhood::Moore, vec![
+        ((1..6, 2..7).into(), Rule::Counting { state: None, count: 2 } ),
+        ((1..6, 2..7).into(), Rule::Counting { state: None, count: 3 } ),
+        ((6, 6).into(), Rule::Counting { state: None, count: 2 } ),
+        ((6, 6).into(), Rule::Counting { state: None, count: 3 } ),
+        ((0, 1).into(), Rule::Counting { state: None, count: 3 } ),
+        ((1..7, 0).into(), Rule::Decay)
+    ]);
 
     let config = Config {
         title: Some("Conway's Game of Life".into()),
