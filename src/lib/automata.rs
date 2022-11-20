@@ -1,17 +1,12 @@
 use std::{
     collections,
-    ops::{Index, IndexMut, self}
-};
-
-use rand::{
-    Rng,
-    seq::SliceRandom
+    borrow,
+    ops::{Index, IndexMut},
 };
 
 use winit::dpi;
 use cgmath::Point2;
-
-use crate::ColorScheme;
+use rand::seq;
 
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
@@ -20,10 +15,34 @@ pub struct Size {
     pub height: u32,
 }
 
-#[allow(clippy::from_over_into)]
-impl Into<dpi::Size> for Size {
-    fn into(self) -> dpi::Size {
-        let (width, height) = (self.width, self.height);
+// Helpful conversions from...
+impl From<(u32, u32)> for Size {
+    fn from(data: (u32, u32)) -> Self {
+        Self { width: data.0, height: data.1 }
+    }
+}
+
+// ...and to image dimensions
+impl From<Size> for (u32, u32) {
+    fn from(data: Size) -> Self {
+        (data.width, data.height)
+    }
+}
+
+// Similar conversions from the rendering engine's unit size...
+impl From<dpi::Size> for Size {
+    fn from(data: dpi::Size) -> Self {
+        let ds = data.to_physical(1.0);
+        let (width, height) = (ds.width, ds.height);
+
+        Self { width, height }
+    }
+}
+
+// ...and to it
+impl From<Size> for dpi::Size {
+    fn from(data: Size) -> Self {
+        let (width, height) = (data.width, data.height);
         dpi::Size::Physical(dpi::PhysicalSize { width, height } )
     }
 }
@@ -53,43 +72,30 @@ impl Automata {
     }
 }
 
-pub fn rand_automata(
+pub fn random_automata(
     size: Size, 
-    spawn: Option<Size>, 
-    states: &[(ops::Range<u32>, f32)]
+    states: &[u32],
+    padding: u32
 ) -> Automata {
     let mut prng = rand::thread_rng();
 
     let mut automata = Automata::new(size);
-    match spawn {
-        Some(spawn) => {
-            let (hw, hh) = (spawn.width / 2, spawn.height / 2);
-            for x in (size.width / 2 - hw)..(size.width / 2 + hw) {
-                for y in (size.height / 2 - hh)..(size.height / 2 + hh) {
-                    let choice = states
-                        .choose_weighted(&mut prng, |s| s.1 );
-                    automata[(x, y).into()] = prng.gen_range(choice.unwrap().0.clone());
-                }
-            }
-        },
-        None => {
-            automata.data = (0..(size.width * size.height))
-                .map(|_| { 
-                    let choice = states
-                        .choose_weighted(&mut prng, |s| s.1 );
-                    prng.gen_range(choice.unwrap().0.clone()) } )
-                .collect::<Vec<_>>();
+    for x in padding..(size.width - padding) {
+        for y in padding..(size.height - padding) {
+            automata[(x, y).into()] = *seq::SliceRandom::choose(states, &mut prng).unwrap();
         }
     }
     
     automata
 }
 
-pub fn load_automata_from_image(image: image::DynamicImage) -> (Automata, ColorScheme) {
-    let image = image.to_rgb8();
+pub fn automata_from_pgm(file: borrow::Cow<'static, str>) -> Automata {
+    let image = image::open(&*file)
+        .unwrap()
+        .to_luma8();
 
-    let size = Size { width: image.width(), height: image.height() };
-    let mut automata = Automata::new(size);
+    // Create the new automata object
+    let mut automata = Automata::new(image.dimensions().into());
 
     let mut states = collections::HashMap::new();
     for x in 0..automata.size.width {
@@ -102,19 +108,10 @@ pub fn load_automata_from_image(image: image::DynamicImage) -> (Automata, ColorS
                     states.insert(image[(x, y)], curr_state);
                 }
             }
-            automata[Point2::new(x, y)] = curr_state;
+
+            automata[(x, y).into()] = curr_state;
         }
     }
 
-    fn to_color(pixel: image::Rgb<u8>) -> [f32; 3] {
-        let p = pixel.0;
-        [p[0] as f32 / 255f32, p[1] as f32 / 255f32, p[2] as f32 / 255f32]
-    }
-
-    let states = states
-        .into_iter()
-        .map(|(pixel, curr_state)| (curr_state, to_color(pixel)))
-        .collect::<Vec<_>>();
-    
-    (automata, ColorScheme::Map(states))
+    automata
 }

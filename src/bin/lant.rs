@@ -1,8 +1,8 @@
 use gridded_automata::{
     run,
     automata, 
+    color,
     Config, 
-    ColorScheme
 };
 
 fn main() {
@@ -15,11 +15,22 @@ fn main() {
         title: Some("Langton's Ant".into()),
         fps: 60,
         state_shader: include_str!("lant.wgsl").into(),
-        coloring: ColorScheme::Map(vec![
-            (0, [0.0; 3]), (1, [1.0, 0.0, 0.0]), (2, [1.0, 0.0, 0.0]), (3, [1.0, 0.0, 0.0]), (4, [1.0, 0.0, 0.0]),
-            (5, [1.0; 3]), (6, [1.0, 0.0, 0.0]), (7, [1.0, 0.0, 0.0]), (8, [1.0, 0.0, 0.0]), (9, [1.0, 0.0, 0.0])
-        ])
+        coloring: &[
+            color::map(0, [0.0; 3]),
+            color::map_range(1..=4, [1.0, 0.0, 0.0]),
+            color::map(5, [1.0; 3]),
+            color::map_range(6..=9, [1.0, 0.0, 0.0])
+        ]
     };
+
+    /*
+    ColorScheme::new(vec![
+        map(0, [0.0; 3]),
+        map(5, [1.0; 3]),
+        map_range(1..=4, [1.0, 0.0, 0.0]),
+        map_range(6..=9, [1.0, 0.0, 0.0])
+    ])
+     */
     
     pollster::block_on(run(automata, config));
 }

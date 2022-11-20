@@ -1,11 +1,12 @@
 mod state;
 
 mod vertex;
+use color::color_shader;
 pub(crate) use vertex::Vertex;
 pub(crate) use vertex::CLIP_SPACE_EXTREMA;
 
 pub mod automata;
-pub mod rules;
+pub mod color;
 
 use std::{
     time,
@@ -20,61 +21,14 @@ use winit::{
     event_loop
 };
 
-pub struct Config {
+pub struct Config<'a> {
     pub title: Option<Cow<'static, str>>,
     pub fps: u32,
     pub state_shader: Cow<'static, str>,
-    pub coloring: ColorScheme
+    pub coloring: &'a [color::Coloring]
 }
 
-pub enum ColorScheme {
-    Lerp { start: [f32; 3], end: [f32; 3], states: u32 },
-    Living([f32; 3]),
-    Map(Vec<(u32, [f32; 3])>)
-}
-
-impl ColorScheme {
-    fn get_color(&self) -> Cow<'static, str> {
-        // Inserted between header and tail blocks
-        // Determines how cells should be colored
-        match &self {
-            Self::Lerp { start, end, states } => format!("
-                let START: vec3<f32> = vec3<f32>({:?}, {:?}, {:?});
-                let END: vec3<f32> = vec3<f32>({:?}, {:?}, {:?});
-                fn get_color(state: u32) -> vec3<f32> {{
-                    if(state == 0u) {{ return vec3<f32>(0.0, 0.0, 0.0); }}
-                    let s = f32(state) / f32({});
-                    return mix(START, END, vec3<f32>(s, s, s));
-                }}",
-                start[0], start[1], start[2], end[0], end[1], end[2], states
-            ),
-            Self::Living(alive) => format!("
-                fn get_color(state: u32) -> vec3<f32> {{
-                    if(state == 0u) {{ return vec3<f32>(0.0, 0.0, 0.0); }}
-                    return vec3<f32>({:?}, {:?}, {:?});
-                }}",
-                alive[0], alive[1], alive[2], 
-            ),
-            Self::Map(colors) => format!("     
-                fn get_color(state: u32) -> vec3<f32> {{
-                    {}
-                    return vec3<f32>(0.0, 0.0, 0.0);
-                }}",
-                colors.iter().fold("".to_string(), |conds, (state, color)| [
-                    conds, 
-                    format!("
-                        if(state == {}u) {{ 
-                            return vec3<f32>({:?}, {:?}, {:?}); 
-                        }}",
-                        state, color[0], color[1], color[2]
-                    )
-                ].join("")
-            ))
-        }.into()
-    }
-}
-
-pub async fn run(automata: automata::Automata, config: Config) {
+pub async fn run<'a>(automata: automata::Automata, config: Config<'a>) {
     let event_loop = event_loop::EventLoop::new();
 
     let window = WindowBuilder::new()
@@ -89,7 +43,7 @@ pub async fn run(automata: automata::Automata, config: Config) {
         source: wgpu::ShaderSource::Wgsl(
             vec![
                 include_str!("./compute/header.wgsl"),
-                &config.coloring.get_color(),
+                &color_shader(config.coloring.to_vec()),
                 &config.state_shader,
                 include_str!("./compute/tail.wgsl")
             ].join("\n").into()
