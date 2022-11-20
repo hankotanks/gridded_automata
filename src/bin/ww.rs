@@ -6,7 +6,7 @@ use gridded_automata::{
 };
 
 fn main() {
-    let automata = automata_from_pgm("./src/bin/ww_sample_2.bmp".into());
+    let automata = automata_from_pgm("./src/bin/ww_sample_2.bmp".into()).unwrap();
 
     let config = Config {
         title: Some("Wire World".into()),

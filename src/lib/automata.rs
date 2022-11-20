@@ -1,7 +1,7 @@
 use std::{
     borrow,
     collections,
-    ops::{ Index, IndexMut },
+    ops::{ Index, IndexMut }, io,
 };
 
 use winit::dpi;
@@ -96,10 +96,12 @@ pub fn random_automata_with_padding(
     automata
 }
 
-pub fn automata_from_pgm(file: borrow::Cow<'static, str>) -> Automata {
-    let image = image::open(&*file)
-        .unwrap()
-        .to_luma8();
+pub fn automata_from_pgm(file: borrow::Cow<'static, str>) -> anyhow::Result<Automata> {
+    if file[file.len() - 4..] != *".pgm" { 
+        anyhow::bail!(io::Error::from(io::ErrorKind::InvalidInput)) 
+    }
+
+    let image = image::open(&*file)?.to_luma8();
 
     // Create the new automata object
     let mut automata = Automata::new(image.dimensions().into());
@@ -120,5 +122,5 @@ pub fn automata_from_pgm(file: borrow::Cow<'static, str>) -> Automata {
         }
     }
 
-    automata
+    anyhow::Ok(automata)
 }

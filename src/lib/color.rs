@@ -4,14 +4,14 @@ use std::{
 };
 
 pub fn color_shader(cr: Vec<Coloring>) -> Cow<'static, str> {
-    let mut color_function = "".to_string();
-    color_function.push_str("fn get_color(state: u32) -> vec3<f32> {");
-    for rule in cr { color_function.push_str(&rule.cs); }
+    let mut color_shader = "".to_string();
+    color_shader.push_str("fn get_color(state: u32) -> vec3<f32> {");
+    for rule in cr { color_shader.push_str(&rule.cs); }
 
-    color_function.push_str("return vec3<f32>(0.0, 0.0, 0.0);");
-    color_function.push('}');
+    color_shader.push_str("return vec3<f32>(0.0, 0.0, 0.0);");
+    color_shader.push('}');
 
-    color_function.into()
+    color_shader.into()
 }
 
 #[derive(Clone)]
