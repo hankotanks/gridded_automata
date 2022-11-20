@@ -1,6 +1,6 @@
 use std::{
     iter,
-    sync::{Arc, Mutex},
+    sync::{ Arc, Mutex },
     cell::Cell, 
     mem
 };
@@ -21,11 +21,9 @@ pub(crate) struct State {
     pub(crate) queue: wgpu::Queue,
 
     pub(crate) size_group: wgpu::BindGroup,
-
     pub(crate) automata: automata::Automata,
     pub(crate) cell_buffers: (wgpu::Buffer, wgpu::Buffer),
     pub(crate) cell_groups: (wgpu::BindGroup, wgpu::BindGroup),
-
     pub(crate) compute_texture_group: wgpu::BindGroup,
     pub(crate) compute_pipeline: wgpu::ComputePipeline,
 

@@ -8,15 +8,14 @@ use gridded_automata::{
 fn main() {
     let automata = automata::random_automata(
         automata::Size { width: 512, height: 512 },
-        &[0, 1],
-        0
+        &[0, 1]
     );
 
     let config = Config {
         title: Some("Conway's Game of Life".into()),
         fps: 60,
         state_shader: include_str!("cgol.wgsl").into(),
-        coloring: &[color::lerp([1.0, 0.0, 0.0], [0.0, 0.1, 1.0], 1..=6)]
+        coloring: &[color::lerp(1..=6, [1.0, 0.0, 0.0], [0.0, 0.1, 1.0])]
     };
     
     pollster::block_on(run(automata, config));

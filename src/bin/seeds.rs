@@ -6,7 +6,7 @@ use gridded_automata::{
 };
 
 fn main() {
-    let automata = automata::random_automata(
+    let automata = automata::random_automata_with_padding(
         automata::Size { width: 512, height: 512 },
         &[0, 1, 2],
         192

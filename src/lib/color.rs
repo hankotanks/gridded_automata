@@ -17,7 +17,7 @@ pub fn color_shader(cr: Vec<Coloring>) -> Cow<'static, str> {
 #[derive(Clone)]
 pub struct Coloring { cs: String }
 
-pub fn lerp(start: [f32; 3], end: [f32; 3], over: RangeInclusive<u32>) -> Coloring {
+pub fn lerp(range: RangeInclusive<u32>, start: [f32; 3], end: [f32; 3]) -> Coloring {
     Coloring { cs: format!("
         if state >= {}u && state <= {}u {{ \
             let s = f32(state - {}u) / f32({});
@@ -27,8 +27,8 @@ pub fn lerp(start: [f32; 3], end: [f32; 3], over: RangeInclusive<u32>) -> Colori
                 vec3<f32>(s, s, s)
             );
         }}",
-        over.start(), over.end(), 
-        over.start(), over.end() - over.start(),
+        range.start(), range.end(), 
+        range.start(), range.end() - range.start(),
         start[0], start[1], start[2], end[0], end[1], end[2]
     ) }
 }

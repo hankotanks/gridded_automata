@@ -1,12 +1,12 @@
 use std::{
-    collections,
     borrow,
-    ops::{Index, IndexMut},
+    collections,
+    ops::{ Index, IndexMut },
 };
 
 use winit::dpi;
-use cgmath::Point2;
 use rand::seq;
+use cgmath::Point2;
 
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
@@ -73,6 +73,13 @@ impl Automata {
 }
 
 pub fn random_automata(
+    size: Size, 
+    states: &[u32]
+) -> Automata {
+    random_automata_with_padding(size, states, 0)
+}
+
+pub fn random_automata_with_padding(
     size: Size, 
     states: &[u32],
     padding: u32

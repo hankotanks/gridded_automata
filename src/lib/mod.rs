@@ -1,7 +1,6 @@
 mod state;
 
 mod vertex;
-use color::color_shader;
 pub(crate) use vertex::Vertex;
 pub(crate) use vertex::CLIP_SPACE_EXTREMA;
 
@@ -43,7 +42,7 @@ pub async fn run<'a>(automata: automata::Automata, config: Config<'a>) {
         source: wgpu::ShaderSource::Wgsl(
             vec![
                 include_str!("./compute/header.wgsl"),
-                &color_shader(config.coloring.to_vec()),
+                &color::color_shader(config.coloring.to_vec()),
                 &config.state_shader,
                 include_str!("./compute/tail.wgsl")
             ].join("\n").into()
