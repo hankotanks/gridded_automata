@@ -19,7 +19,7 @@ pub struct Coloring { cs: String }
 
 pub fn lerp(range: RangeInclusive<u32>, start: [f32; 3], end: [f32; 3]) -> Coloring {
     Coloring { cs: format!("
-        if state >= {}u && state <= {}u {{ \
+        if state >= {}u && state <= {}u {{
             let s = f32(state - {}u) / f32({});
             return mix(
                 vec3<f32>({:?}, {:?}, {:?}), 

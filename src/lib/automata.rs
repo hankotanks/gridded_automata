@@ -96,7 +96,8 @@ pub fn random_automata_with_padding(
     automata
 }
 
-pub fn automata_from_pgm(file: borrow::Cow<'static, str>) -> anyhow::Result<Automata> {
+pub fn automata_from_pgm<C: Into<borrow::Cow<'static, str>>>(file: C) -> anyhow::Result<Automata> {
+    let file: borrow::Cow<'static, str> = file.into();
     if file[file.len() - 4..] != *".pgm" { 
         anyhow::bail!(io::Error::from(io::ErrorKind::InvalidInput)) 
     }
