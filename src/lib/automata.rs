@@ -9,7 +9,7 @@ use std::{
 use winit::dpi;
 use cgmath::Point2;
 
-#[cfg(feature = "from_rand")]
+#[cfg(feature = "random")]
 use rand::seq;
 
 #[repr(C)]
@@ -76,7 +76,7 @@ impl Automata {
     }
 }
 
-#[cfg(feature = "from_rand")]
+#[cfg(feature = "random")]
 pub fn random_automata(
     size: Size, 
     states: &[u32]
@@ -84,7 +84,7 @@ pub fn random_automata(
     random_automata_with_padding(size, states, 0)
 }
 
-#[cfg(feature = "from_rand")]
+#[cfg(feature = "random")]
 pub fn random_automata_with_padding(
     size: Size, 
     states: &[u32],

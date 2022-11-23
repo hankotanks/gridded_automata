@@ -36,6 +36,15 @@ pub async fn run(automata: automata::Automata, config: Config<'_>) {
         .build(&event_loop)
         .unwrap();
 
+    let mut workgroup_size = 1u32;
+    for i in 2..=16u32 {
+        if automata.size.width % i == 0 && automata.size.height % i == 0 {
+            workgroup_size = i;
+        }
+    }
+
+    dbg!(workgroup_size);
+
     // The shader is built at runtime to support any given coloring scheme
     let shader_descriptor = wgpu::ShaderModuleDescriptor {
         label: None,
@@ -44,6 +53,7 @@ pub async fn run(automata: automata::Automata, config: Config<'_>) {
                 include_str!("./compute/header.wgsl"),
                 &color::color_shader(config.coloring.to_vec()),
                 &config.state_shader,
+                &format!("@compute @workgroup_size({}, {}, 1)", workgroup_size, workgroup_size),
                 include_str!("./compute/tail.wgsl")
             ].join("\n").into()
         )

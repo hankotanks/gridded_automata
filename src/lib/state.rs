@@ -26,6 +26,7 @@ pub(crate) struct State {
     pub(crate) cell_groups: (wgpu::BindGroup, wgpu::BindGroup),
     pub(crate) compute_texture_group: wgpu::BindGroup,
     pub(crate) compute_pipeline: wgpu::ComputePipeline,
+    pub(crate) workgroup: u32,
 
     pub(crate) vertex_buffer: wgpu::Buffer,
     pub(crate) index_buffer: wgpu::Buffer,
@@ -303,6 +304,13 @@ impl State {
             }
         );
 
+        let mut workgroup_size = 1u32;
+        for i in 2..=16u32 {
+            if automata.size.width % i == 0 && automata.size.height % i == 0 {
+                workgroup_size = i;
+            }
+        }
+
         //
         // RENDER SHADER
         //
@@ -417,6 +425,7 @@ impl State {
             cell_groups,
             compute_texture_group,
             compute_pipeline,
+            workgroup: workgroup_size,
             vertex_buffer,
             index_buffer,
             render_texture_group,
@@ -451,8 +460,8 @@ impl State {
             compute_pass.set_pipeline(&self.compute_pipeline);
 
             compute_pass.dispatch_workgroups(
-                self.automata.size.width / 2, 
-                self.automata.size.height / 2, 
+                self.automata.size.width / self.workgroup, 
+                self.automata.size.height / self.workgroup, 
                 1
             );
         }

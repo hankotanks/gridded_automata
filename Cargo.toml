@@ -15,8 +15,8 @@ rand = { version = "0.8.5", optional = true }
 image = { version = "0.24.5", optional = true }
 
 [features]
-default = ["from_rand", "from_image"]
-from_rand = ["dep:rand"]
+default = ["random", "from_image"]
+random = ["dep:rand"]
 from_image = ["dep:image"]
 
 [lib]
