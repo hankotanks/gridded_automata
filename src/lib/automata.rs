@@ -1,12 +1,16 @@
 use std::{
     borrow,
-    collections,
-    ops::{ Index, IndexMut }, io,
+    ops::{ Index, IndexMut }, 
+    io, 
+    fs,
+    collections
 };
 
 use winit::dpi;
-use rand::seq;
 use cgmath::Point2;
+
+#[cfg(feature = "from_rand")]
+use rand::seq;
 
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
@@ -72,6 +76,7 @@ impl Automata {
     }
 }
 
+#[cfg(feature = "from_rand")]
 pub fn random_automata(
     size: Size, 
     states: &[u32]
@@ -79,6 +84,7 @@ pub fn random_automata(
     random_automata_with_padding(size, states, 0)
 }
 
+#[cfg(feature = "from_rand")]
 pub fn random_automata_with_padding(
     size: Size, 
     states: &[u32],
@@ -97,12 +103,105 @@ pub fn random_automata_with_padding(
 }
 
 pub fn automata_from_pgm<C: Into<borrow::Cow<'static, str>>>(file: C) -> anyhow::Result<Automata> {
+    #[derive(Debug)]
+    enum PgmFormat { P2, P5 }
+
     let file: borrow::Cow<'static, str> = file.into();
     if file[file.len() - 4..] != *".pgm" { 
-        anyhow::bail!(io::Error::from(io::ErrorKind::InvalidInput)) 
+        anyhow::bail!(io::Error::from(io::ErrorKind::InvalidInput));
     }
 
-    let image = image::open(&*file)?.to_luma8();
+    let image = io::BufReader::new(fs::File::open(&*file)?);
+
+    let mut lines = io::BufRead::lines(image);
+
+    let mut format: Option<PgmFormat> = None;
+    'format: while format.is_none() {
+        if let Some(result) = lines.next() {
+            let line = result?;
+            if line.starts_with('#') { continue 'format; }
+            match line.split('#').next().unwrap() {
+                "P2" => format = Some(PgmFormat::P2),
+                "P5" => format= Some(PgmFormat::P5),
+                _ => {  }
+            }
+        } else {
+            anyhow::bail!(io::Error::from(io::ErrorKind::InvalidInput));
+        }
+    }
+
+    if format.is_none() { anyhow::bail!(io::Error::from(io::ErrorKind::InvalidInput)); }
+    let format = format.unwrap();
+
+    let mut size: Option<Size> = None;
+    'size: while size.is_none() {
+        if let Some(result) = lines.next() {
+            let line = result?;
+            if line.starts_with('#') { continue 'size; }
+            let line = line.split('#').next().unwrap();
+            let line = line.split(' ').collect::<Vec<_>>();
+            let width = line[0].to_string().parse::<u32>();
+            let height = line[0].to_string().parse::<u32>();
+            if width.is_err() || height.is_err() { 
+                anyhow::bail!(io::Error::from(io::ErrorKind::InvalidInput));
+            }
+
+            size = Some((width.unwrap(), height.unwrap()).into());
+        } else {
+            anyhow::bail!(io::Error::from(io::ErrorKind::InvalidInput));
+        }
+    }
+
+    if size.is_none() { anyhow::bail!(io::Error::from(io::ErrorKind::InvalidInput)); }
+    let size = size.unwrap();
+
+    'seek: loop {
+        if let Some(result) = lines.next() {
+            let line = result?;
+            if line.starts_with('#') { continue 'seek; }
+            let line = line.split('#').next().unwrap();
+            if line.to_string().parse::<u32>().is_ok() {
+                break 'seek;
+            }
+        } else {
+            anyhow::bail!(io::Error::from(io::ErrorKind::InvalidInput));
+        }
+    }
+
+    let mut automata = Automata::new(size);
+    automata.data = match format {
+        PgmFormat::P2 => { // ASCII
+            let mut data = Vec::new();
+            for line in lines {
+                for word in line?.split(' ') {
+                    if let Ok(state) =  word.parse::<u32>() {
+                        data.push(state);
+                    }
+                }
+            }
+
+            data
+        },
+        PgmFormat::P5 => { // binary
+            let cells = size.width * size.height;
+            let mut data = Vec::new();
+            'outer: for line in lines {
+                '_inner: for state in line?.as_bytes() {
+                    if data.len() as u32 >= cells { break 'outer; }
+                    data.push(*state as u32);
+                }
+            }
+
+            data
+        }
+    };
+
+    anyhow::Ok(automata)
+}
+
+#[cfg(feature = "from_image")]
+pub fn automata_from_image<C: Into<borrow::Cow<'static, str>>>(file: C) -> anyhow::Result<Automata> {
+    let image = image::open(&*file.into())?.to_luma8();
 
     // Create the new automata object
     let mut automata = Automata::new(image.dimensions().into());

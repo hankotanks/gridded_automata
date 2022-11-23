@@ -27,7 +27,7 @@ pub struct Config<'a> {
     pub coloring: &'a [color::Coloring]
 }
 
-pub async fn run<'a>(automata: automata::Automata, config: Config<'a>) {
+pub async fn run(automata: automata::Automata, config: Config<'_>) {
     let event_loop = event_loop::EventLoop::new();
 
     let window = WindowBuilder::new()

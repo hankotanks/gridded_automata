@@ -451,8 +451,8 @@ impl State {
             compute_pass.set_pipeline(&self.compute_pipeline);
 
             compute_pass.dispatch_workgroups(
-                self.automata.size.width / 16, 
-                self.automata.size.height / 16, 
+                self.automata.size.width / 2, 
+                self.automata.size.height / 2, 
                 1
             );
         }

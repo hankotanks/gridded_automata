@@ -1,4 +1,4 @@
-@compute @workgroup_size(16, 16, 1)
+@compute @workgroup_size(2, 2, 1)
 fn main_cs(@builtin(global_invocation_id) id: vec3<u32>) {
     if(id.x < size.width && id.y < size.height) {
         let index = id.x + id.y * size.width;
