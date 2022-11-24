@@ -2,7 +2,8 @@ use gridded_automata::{
     run,
     automata, 
     Config, 
-    color
+    color, 
+    Neighborhood
 };
 
 fn main() {
@@ -19,7 +20,8 @@ fn main() {
         coloring: &[
             color::map(1, [0.0, 0.8, 0.4]),
             color::map(2, [0.0, 0.4, 0.8])
-        ]
+        ],
+        neighborhood: Neighborhood::Moore
     };
     
     pollster::block_on(run(automata, config));

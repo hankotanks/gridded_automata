@@ -2,7 +2,8 @@ use gridded_automata::{
     run,
     automata, 
     Config, 
-    color
+    color, 
+    Neighborhood
 };
 
 fn main() {
@@ -16,7 +17,8 @@ fn main() {
         title: Some("Seeds".into()),
         fps: 60,
         state_shader: include_str!("seeds.wgsl").into(),
-        coloring: &[color::alive([1.0; 3])]
+        coloring: &[color::alive([1.0; 3])],
+        neighborhood: Neighborhood::Moore
     };
     
     pollster::block_on(run(automata, config));

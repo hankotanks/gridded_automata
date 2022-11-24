@@ -3,6 +3,7 @@ use gridded_automata::{
     automata, 
     color,
     Config, 
+    Neighborhood, 
 };
 
 fn main() {
@@ -20,7 +21,8 @@ fn main() {
             color::map_range(1..=4, [1.0, 0.0, 0.0]),
             color::map(5, [1.0; 3]),
             color::map_range(6..=9, [1.0, 0.0, 0.0])
-        ]
+        ],
+        neighborhood: Neighborhood::Moore
     };
 
     /*

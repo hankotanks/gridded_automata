@@ -40,27 +40,23 @@ fn wrap(coord: vec2<i32>) -> u32 {
     return u32(n_c.x) + u32(n_c.y) * size.width;
 }
 
-//
-// User-accessible methods
-//
-
-fn moore_neighborhood(coord: vec2<i32>) -> Neighborhood {
+fn moore(coord: vec2<i32>) -> Neighborhood {
     var neighborhood: Neighborhood;
     neighborhood.cells = array<u32, 8>();
-    
-    neighborhood.cells[0] = current[wrap(vec2<i32>(coord.x - 1, coord.y - 1))];
-    neighborhood.cells[1] = current[wrap(vec2<i32>(coord.x, coord.y - 1))];
-    neighborhood.cells[2] = current[wrap(vec2<i32>(coord.x + 1, coord.y - 1))];
-    neighborhood.cells[3] = current[wrap(vec2<i32>(coord.x - 1, coord.y))];
-    neighborhood.cells[4] = current[wrap(vec2<i32>(coord.x + 1, coord.y))];
-    neighborhood.cells[5] = current[wrap(vec2<i32>(coord.x - 1, coord.y + 1))];
-    neighborhood.cells[6] = current[wrap(vec2<i32>(coord.x, coord.y + 1))];
+
+    neighborhood.cells[0] = current[wrap(vec2<i32>(coord.x, coord.y - 1))];
+    neighborhood.cells[1] = current[wrap(vec2<i32>(coord.x - 1, coord.y))];
+    neighborhood.cells[2] = current[wrap(vec2<i32>(coord.x + 1, coord.y))];
+    neighborhood.cells[3] = current[wrap(vec2<i32>(coord.x, coord.y + 1))];
+    neighborhood.cells[4] = current[wrap(vec2<i32>(coord.x - 1, coord.y - 1))];
+    neighborhood.cells[5] = current[wrap(vec2<i32>(coord.x + 1, coord.y - 1))];
+    neighborhood.cells[6] = current[wrap(vec2<i32>(coord.x - 1, coord.y + 1))];
     neighborhood.cells[7] = current[wrap(vec2<i32>(coord.x + 1, coord.y + 1))];
 
     return neighborhood;
 }
 
-fn von_neumann_neighborhood(coord: vec2<i32>) -> Neighborhood {
+fn von_neumann(coord: vec2<i32>) -> Neighborhood {
     var neighborhood: Neighborhood;
     neighborhood.cells = array<u32, 8>();
 
@@ -72,7 +68,11 @@ fn von_neumann_neighborhood(coord: vec2<i32>) -> Neighborhood {
     return neighborhood;
 }
 
-fn count_living(neighborhood: Neighborhood) -> u32 {
+//
+// User-accessible methods
+//
+
+fn living(neighborhood: Neighborhood) -> u32 {
     var neighbor_count = 0u;
     
     if(neighborhood.cells[0] != 0u) { neighbor_count++; }
@@ -87,7 +87,7 @@ fn count_living(neighborhood: Neighborhood) -> u32 {
     return neighbor_count;
 }
 
-fn count_matching(neighborhood: Neighborhood, state: u32) -> u32 {
+fn matching(neighborhood: Neighborhood, state: u32) -> u32 {
     var neighbor_count = 0u;
     
     if(neighborhood.cells[0] == state) { neighbor_count++; }
@@ -102,18 +102,18 @@ fn count_matching(neighborhood: Neighborhood, state: u32) -> u32 {
     return neighbor_count;
 }
 
-fn up(coord: vec2<i32>) -> u32 {
-    return current[wrap(vec2<i32>(coord.x, coord.y - 1))];
+fn up(neighborhood: Neighborhood) -> u32 {
+    return neighborhood.cells[0];
 }
 
-fn left(coord: vec2<i32>) -> u32 {
-    return current[wrap(vec2<i32>(coord.x - 1, coord.y))];
+fn left(neighborhood: Neighborhood) -> u32 {
+    return neighborhood.cells[1];
 }
 
-fn right(coord: vec2<i32>) -> u32 {
-    return current[wrap(vec2<i32>(coord.x + 1, coord.y))];
+fn right(neighborhood: Neighborhood) -> u32 {
+    return neighborhood.cells[2];
 }
 
-fn down(coord: vec2<i32>) -> u32 {
-    return current[wrap(vec2<i32>(coord.x, coord.y + 1))];
+fn down(neighborhood: Neighborhood) -> u32 {
+    return neighborhood.cells[3];
 }

@@ -20,11 +20,17 @@ use winit::{
     event_loop
 };
 
+pub enum Neighborhood {
+    Moore,
+    VonNeumann
+}
+
 pub struct Config<'a> {
     pub title: Option<Cow<'static, str>>,
     pub fps: u32,
     pub state_shader: Cow<'static, str>,
-    pub coloring: &'a [color::Coloring]
+    pub coloring: &'a [color::Coloring],
+    pub neighborhood: Neighborhood
 }
 
 pub async fn run(automata: automata::Automata, config: Config<'_>) {
@@ -36,14 +42,20 @@ pub async fn run(automata: automata::Automata, config: Config<'_>) {
         .build(&event_loop)
         .unwrap();
 
-    let mut workgroup_size = 1u32;
+    let mut workgroup = 1u32;
     for i in 2..=16u32 {
         if automata.size.width % i == 0 && automata.size.height % i == 0 {
-            workgroup_size = i;
+            workgroup = i;
         }
     }
 
-    dbg!(workgroup_size);
+    let neighborhood = format!("
+        fn neighborhood(coord: vec2<i32>) -> Neighborhood {{ return {}(coord); }}", 
+        match config.neighborhood {
+            Neighborhood::Moore => "moore",
+            Neighborhood::VonNeumann => "von_neumann"
+        } 
+    );
 
     // The shader is built at runtime to support any given coloring scheme
     let shader_descriptor = wgpu::ShaderModuleDescriptor {
@@ -53,7 +65,8 @@ pub async fn run(automata: automata::Automata, config: Config<'_>) {
                 include_str!("./compute/header.wgsl"),
                 &color::color_shader(config.coloring.to_vec()),
                 &config.state_shader,
-                &format!("@compute @workgroup_size({}, {}, 1)", workgroup_size, workgroup_size),
+                &neighborhood,
+                &format!("@compute @workgroup_size({}, {}, 1)", workgroup, workgroup),
                 include_str!("./compute/tail.wgsl")
             ].join("\n").into()
         )

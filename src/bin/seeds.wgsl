@@ -1,8 +1,5 @@
-fn main(coord: vec2<i32>, state: u32) -> u32 {
-    let neighborhood = moore_neighborhood(coord);
-    var adj = count_living(neighborhood);
-
-    if(state == 0u && adj == 2u) {
+fn main(neighborhood: Neighborhood, state: u32) -> u32 {
+    if(state == 0u && living(neighborhood) == 2u) {
         return 1u;
     } 
     

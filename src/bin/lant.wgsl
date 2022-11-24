@@ -1,8 +1,8 @@
-fn main(coord: vec2<i32>, state: u32) -> u32 {
-    let u: u32 = up(coord);
-    let l: u32 = left(coord);
-    let r: u32 = right(coord);
-    let d: u32 = down(coord);
+fn main(neighborhood: Neighborhood, state: u32) -> u32 {
+    let u: u32 = up(neighborhood);
+    let l: u32 = left(neighborhood);
+    let r: u32 = right(neighborhood);
+    let d: u32 = down(neighborhood);
 
     switch state {
         case 1u, 2u, 3u, 4u { return 5u; }
