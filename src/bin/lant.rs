@@ -24,15 +24,6 @@ fn main() {
         ],
         neighborhood: Neighborhood::Moore
     };
-
-    /*
-    ColorScheme::new(vec![
-        map(0, [0.0; 3]),
-        map(5, [1.0; 3]),
-        map_range(1..=4, [1.0, 0.0, 0.0]),
-        map_range(6..=9, [1.0, 0.0, 0.0])
-    ])
-     */
     
     pollster::block_on(run(automata, config));
 }
