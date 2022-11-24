@@ -33,7 +33,10 @@ pub struct Config<'a> {
     pub neighborhood: Neighborhood
 }
 
-pub async fn run(automata: automata::Automata, config: Config<'_>) {
+pub async fn run(
+    automata: automata::Automata, 
+    config: Config<'_>
+) -> automata::Automata {
     let event_loop = event_loop::EventLoop::new();
 
     let window = WindowBuilder::new()
@@ -133,4 +136,7 @@ pub async fn run(automata: automata::Automata, config: Config<'_>) {
             _ => {}
         }
     } );
+    
+    #[allow(unreachable_code)]
+    state.automata
 }

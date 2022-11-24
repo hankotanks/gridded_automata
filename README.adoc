@@ -1,0 +1,25 @@
+= Gridded Automata
+
+This is a library for rendering discrete cellular automata using compute shaders. 
+Users provide a state function (written in _WGSL_) that returns a cell's new state based on its current state and that of its neighbors. The simulation speed, the way cells are colored, and the type of neighborhood can be tweaked through config options.
+
+Automata cell data can be read from `PGM` image files, which can in ASCII or binary format (`P2` & `P5` as described https://en.wikipedia.org/wiki/Netpbm[here]). 
+
+The library's `random` and `from_image` features are enabled by default, and allow automata to be randomly generated or read from a generic image file. Note that colors are assigned cell states in the order they are encountered, which can lead to confusion. A "legend" of pixel values can be supplied in the corner of the image to ensure cell states are interpreted correctly.
+
+== Examples
+
+A number of classic automata are included to showcase the library. Run them with the following command:
+
+----
+cargo run --bin [name]
+----
+
+.Where `[name]` is one of the following:
+
+[horizontal]
+`cgol` :: Conway's Game of Life
+`ww` :: Wire World (loads cells from a `PGM` file)
+`lant` :: Langton's Ant
+`bb` :: Brian's Brain
+`seeds` :: Seeds
