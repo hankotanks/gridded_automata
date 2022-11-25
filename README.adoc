@@ -18,6 +18,22 @@ Run them with `cargo run --bin [name]`
 `bb` :: https://conwaylife.com/wiki/OCA:Brian's_Brain[Brian's Brain]
 `seeds` :: Seeds
 
+== Neighborhood
+
+.Moore
+----
+4 0 5
+1 · 2
+6 3 7
+----
+
+.Von Neumann
+----
+  0 
+1 · 2
+  3 
+----
+
 == The State Function
 
 Each generation, a 'state' function is called on each cell in the simulation. Here's the one in `seeds.wgsl`:
@@ -32,13 +48,13 @@ fn main(neighborhood: Neighborhood, state: u32) -> u32 {
 }
 ----
 
-All state functions must have this method signature. When building the compute shader, this function is placed after a header that contains a number of helper functions. 
+All state functions must have this method signature. When compiling the compute shader, this function is placed after a header that contains a number of helper functions.
 
 .*Here's some of the helper functions...*
 [horizontal]
-`fn living(neighborhood: Neighborhood) -> u32` :: Returns the number of non-zero cells in the neighborhood.
-`fn matching(neighborhood: Neighborhood, state: u32) -> u32` :: Returns the number of cells with the given state in the neighborhood.
-`fn up(neighborhood: Neighborhood) -> u32` :: Returns the cell above the current cell.
-`fn left(neighborhood: Neighborhood) -> u32` :: Returns the cell to the left of the current cell.
-`fn right(neighborhood: Neighborhood) -> u32` :: Returns the cell to the right of the current cell.
-`fn down(neighborhood: Neighborhood) -> u32` :: Returns the cell beneath the current cell.
+`fn living(Neighborhood) -> u32` :: Returns the number of non-zero cells in the neighborhood.
+`fn matching(Neighborhood, u32) -> u32` :: Returns the number of cells with the given state in the neighborhood.
+`fn up(Neighborhood) -> u32` :: Returns the cell above the current cell.
+`fn left(Neighborhood) -> u32` :: Returns the cell to the left of the current cell.
+`fn right(Neighborhood) -> u32` :: Returns the cell to the right of the current cell.
+`fn down(Neighborhood) -> u32` :: Returns the cell beneath the current cell.
