@@ -7,12 +7,38 @@ Automata cell data can be read from `PGM` image files, which can be in ASCII or 
 
 == Examples
 
-A number of classic automata are included as binaries, intended to showcase the library. 
+A number of classic automata are included as binaries, intended to showcase the library.
+Run them with `cargo run --bin [name]`
 
-.Binaries
+.*Binaries*
 [horizontal]
 `cgol` :: Conway's Game of Life
 `ww` :: https://mathworld.wolfram.com/WireWorld.html[Wire World] (loads cells from a `PGM` file)
 `lant` :: Langton's Ant
 `bb` :: https://conwaylife.com/wiki/OCA:Brian's_Brain[Brian's Brain]
 `seeds` :: Seeds
+
+== The State Function
+
+Each generation, a 'state' function is called on each cell in the simulation. Here's the one in `seeds.wgsl`:
+
+----
+fn main(neighborhood: Neighborhood, state: u32) -> u32 {
+    if(state == 0u && living(neighborhood) == 2u) {
+        return 1u;
+    } 
+    
+    return 0u;
+}
+----
+
+All state functions must have this method signature. When building the compute shader, this function is placed after a header that contains a number of helper functions. 
+
+.*Here's some of the helper functions...*
+[horizontal]
+`fn living(neighborhood: Neighborhood) -> u32` :: Returns the number of non-zero cells in the neighborhood.
+`fn matching(neighborhood: Neighborhood, state: u32) -> u32` :: Returns the number of cells with the given state in the neighborhood.
+`fn up(neighborhood: Neighborhood) -> u32` :: Returns the cell above the current cell.
+`fn left(neighborhood: Neighborhood) -> u32` :: Returns the cell to the left of the current cell.
+`fn right(neighborhood: Neighborhood) -> u32` :: Returns the cell to the right of the current cell.
+`fn down(neighborhood: Neighborhood) -> u32` :: Returns the cell beneath the current cell.
