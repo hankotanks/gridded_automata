@@ -15,19 +15,21 @@ Run them with `cargo run --bin [name]`
 `cgol` :: Conway's Game of Life
 `ww` :: https://mathworld.wolfram.com/WireWorld.html[Wire World] (loads cells from a `PGM` file)
 `lant` :: Langton's Ant
-`bb` :: https://conwaylife.com/wiki/OCA:Brian's_Brain[Brian's Brain]
 `seeds` :: Seeds
+`bb` :: https://conwaylife.com/wiki/OCA:Brian's_Brain[Brian's Brain]
 
-== Neighborhood
+== Neighborhoods
 
-.Moore
+The library distinguishes between two types of neighborhoods, Moore and Von-Neumann. These are represented by the same `WGSL` data type; all the same functions apply to them. Their layouts can be found below:
+
+.*Moore*
 ----
 4 0 5
 1 · 2
 6 3 7
 ----
 
-.Von Neumann
+.*Von Neumann*
 ----
   0 
 1 · 2
@@ -50,11 +52,11 @@ fn main(neighborhood: Neighborhood, state: u32) -> u32 {
 
 All state functions must have this method signature. When compiling the compute shader, this function is placed after a header that contains a number of helper functions.
 
-.*Here's some of the helper functions...*
+.*Here's some of them...*
 [horizontal]
-`fn living(Neighborhood) -> u32` :: Returns the number of non-zero cells in the neighborhood.
-`fn matching(Neighborhood, u32) -> u32` :: Returns the number of cells with the given state in the neighborhood.
-`fn up(Neighborhood) -> u32` :: Returns the cell above the current cell.
-`fn left(Neighborhood) -> u32` :: Returns the cell to the left of the current cell.
-`fn right(Neighborhood) -> u32` :: Returns the cell to the right of the current cell.
-`fn down(Neighborhood) -> u32` :: Returns the cell beneath the current cell.
+`living(Neighborhood) -> u32` :: Returns the number of non-zero cells in the neighborhood.
+`matching(Neighborhood, u32) -> u32` :: Returns the number of cells with the given state in the neighborhood.
+`up(Neighborhood) -> u32` :: Returns the cell above the current cell.
+`left(Neighborhood) -> u32` :: Returns the cell to the left of the current cell.
+`right(Neighborhood) -> u32` :: Returns the cell to the right of the current cell.
+`down(Neighborhood) -> u32` :: Returns the cell beneath the current cell.
