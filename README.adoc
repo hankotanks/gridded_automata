@@ -20,21 +20,7 @@ Run them with `cargo run --bin [name]`
 
 == Neighborhoods
 
-The library distinguishes between two types of neighborhoods, Moore and Von-Neumann. These are represented by the same _WGSL_ data type; all the same functions apply to them. Their layouts can be found below:
-
-.*Moore*
-----
-4 0 5
-1 · 2
-6 3 7
-----
-
-.*Von Neumann*
-----
-  0 
-1 · 2
-  3 
-----
+The library distinguishes between two types of neighborhoods, Moore and Von-Neumann. These are represented by the same _WGSL_ data type; all the same functions apply to them.
 
 == The State Function
 
