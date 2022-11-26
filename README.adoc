@@ -11,7 +11,7 @@ A number of classic automata are included as binaries, intended to showcase the 
 Run them with
 
 ----
-`cargo run --bin [name] [[args]]`
+cargo run --bin [name] [[args]]
 ----
 
 .*Binaries*
