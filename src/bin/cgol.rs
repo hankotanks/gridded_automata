@@ -16,7 +16,7 @@ fn main() {
         title: Some("Conway's Game of Life".into()),
         fps: 60,
         state_shader: include_str!("cgol.wgsl").into(),
-        coloring: &[color::lerp(1..=6, [1.0, 0.0, 0.0], [0.0, 0.1, 1.0])],
+        coloring: &[color::lerp(1..=6, [1.0, 0.2, 0.0], [0.1, 0.2, 1.0])],
         neighborhood: Neighborhood::Moore
     };
     

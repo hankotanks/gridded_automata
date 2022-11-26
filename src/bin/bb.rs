@@ -10,7 +10,7 @@ fn main() {
     let automata = automata::random_automata_with_padding(
         automata::Size { width: 512, height: 512 },
         &[0, 1, 2],
-        192
+        240
     );
 
     let config = Config {
@@ -18,8 +18,8 @@ fn main() {
         fps: 60,
         state_shader: include_str!("bb.wgsl").into(),
         coloring: &[
-            color::map(1, [0.0, 0.8, 0.4]),
-            color::map(2, [0.0, 0.4, 0.8])
+            color::map(1, [0.0, 0.0, 1.0]),
+            color::map(2, [0.0, 1.0, 0.0])
         ],
         neighborhood: Neighborhood::Moore
     };

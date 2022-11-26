@@ -7,8 +7,38 @@ Automata cell data can be read from `PGM` image files, which can be in ASCII or 
 
 == Examples
 
-A number of classic automata are included as binaries, intended to showcase the library.
-Run them with `cargo run --bin [name]`
+A number of classic automata are included as binaries, intended to showcase the library. +
+Run them with
+
+----
+`cargo run --bin [name] [[args]]`
+----
+
+.Binaries
+[cols="^1,^1,1", options=header]
+|===
+|Name |Arguments |Description
+
+|`cgol`
+|_—_
+|Conway's Game of Life
+
+|`ww`
+|Name of `PGM` file
+|https://mathworld.wolfram.com/WireWorld.html[Wire World]
+
+|`lant`
+|_—_
+|Langton's Ant
+
+|`seeds`
+|_—_
+|Seeds
+
+|`bb`
+|_—_
+|https://conwaylife.com/wiki/OCA:Brian's_Brain[Brian's Brain]
+|===
 
 .*Binaries*
 [horizontal]

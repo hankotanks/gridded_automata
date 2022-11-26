@@ -14,7 +14,7 @@ fn main() {
         fps: 30,
         state_shader: include_str!("ww.wgsl").into(),
         coloring: &[
-            color::map(1, [1.0, 0.4, 0.0]),
+            color::map(1, [1.0, 0.2, 0.0]),
             color::map(2, [1.0; 3]),
             color::map(3, [0.0, 0.2, 1.0])
         ],
