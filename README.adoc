@@ -14,7 +14,8 @@ Run them with
 `cargo run --bin [name] [[args]]`
 ----
 
-.Binaries
+.*Binaries*
+[caption=""]
 [cols="^1,^1,1", options=header]
 |===
 |Name |Arguments |Description
@@ -39,14 +40,6 @@ Run them with
 |_—_
 |https://conwaylife.com/wiki/OCA:Brian's_Brain[Brian's Brain]
 |===
-
-.*Binaries*
-[horizontal]
-`cgol` :: Conway's Game of Life
-`ww` :: https://mathworld.wolfram.com/WireWorld.html[Wire World] (loads cells from a `PGM` file)
-`lant` :: Langton's Ant
-`seeds` :: Seeds
-`bb` :: https://conwaylife.com/wiki/OCA:Brian's_Brain[Brian's Brain]
 
 == Neighborhoods
 
