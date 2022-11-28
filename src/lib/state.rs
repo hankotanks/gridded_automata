@@ -1,8 +1,8 @@
 use std::{
     iter,
+    mem,
     sync::{ Arc, Mutex },
-    cell::Cell, 
-    mem
+    cell::Cell
 };
 
 use wgpu::util::DeviceExt;
@@ -14,13 +14,14 @@ use crate::{
 };
 
 pub(crate) struct State {
+    pub(crate) automata: automata::Automata,
+
     pub(crate) physical_size: winit::dpi::PhysicalSize<u32>,
     pub(crate) device: wgpu::Device,
     pub(crate) surface: wgpu::Surface,
     pub(crate) surface_config: wgpu::SurfaceConfiguration,
     pub(crate) queue: wgpu::Queue,
     pub(crate) size_group: wgpu::BindGroup,
-    pub(crate) automata: automata::Automata,
     pub(crate) cell_buffers: (wgpu::Buffer, wgpu::Buffer),
     pub(crate) cell_groups: (wgpu::BindGroup, wgpu::BindGroup),
     pub(crate) compute_texture_group: wgpu::BindGroup,
@@ -48,14 +49,13 @@ impl State {
 
         let surface = unsafe { instance.create_surface(window) };
         
-        let adapter = instance
-            .request_adapter(&wgpu::RequestAdapterOptions {
+        let adapter = instance.request_adapter(
+            &wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::default(),
                 compatible_surface: Some(&surface),
                 force_fallback_adapter: false,
-            })
-            .await
-            .unwrap();
+            }
+        ).await.unwrap();
 
         let (device, queue) = adapter.request_device(
             &wgpu::DeviceDescriptor {
@@ -412,13 +412,13 @@ impl State {
         );
 
         Self {
+            automata,
             physical_size,
             device,
             surface,
             surface_config,
             queue,
             size_group,
-            automata,
             cell_buffers,
             cell_groups,
             compute_texture_group,
