@@ -51,7 +51,7 @@ Each generation, a 'state' function is called on each cell in the simulation. He
 
 ----
 fn main(neighborhood: Neighborhood, state: u32) -> u32 {
-    if(state == 0u && living(neighborhood) == 2u) {
+    if state == 0u && living(neighborhood) == 2u {
         return 1u;
     } 
     
@@ -69,3 +69,29 @@ All state functions must have this method signature. When compiling the compute 
 `left(Neighborhood) -> u32` :: Returns the cell to the left of the current cell.
 `right(Neighborhood) -> u32` :: Returns the cell to the right of the current cell.
 `down(Neighborhood) -> u32` :: Returns the cell beneath the current cell.
+
+== Images
+
+ifdef::env-github[]
+++++
+<p align="center">
+  <img width="766" height="766" src="images/cgol.gif">
+</p>
+++++
+endif::[]
+
+ifndef::env-github[]
+image::images/cgol.gif[Example, 766, 766, align=center]
+endif::[]
+
+ifdef::env-github[]
+++++
+<p align="center">
+  <img width="766" height="766" src="images/bb.gif">
+</p>
+++++
+endif::[]
+
+ifndef::env-github[]
+image::images/bb.gif[Example, 766, 766, align=center]
+endif::[]
